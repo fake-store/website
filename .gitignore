@@ -1,0 +1,16 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+.kotlin
+
+### IntelliJ IDEA ###
+.idea
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+src/main/resources/application-local.properties
