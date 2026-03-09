@@ -8,6 +8,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes
 import xyz.fakestore.website.client.OrdersClient
 import xyz.fakestore.website.client.PaymentsClient
 import xyz.fakestore.website.client.UsersClient
+import java.util.UUID
 
 @Controller
 class WebController(
@@ -27,9 +28,81 @@ class WebController(
         val token = session.getAttribute("token") as? String ?: return "redirect:/login"
         val user = usersClient.getMe(token) ?: return "redirect:/logout"
         model.addAttribute("user", user)
-        model.addAttribute("payments", paymentsClient.getMe(token))
+        model.addAttribute("paymentMethods", paymentsClient.getMethods(token))
+        model.addAttribute("paymentMethodTypes", listOf("CreditCard", "DebitCard", "Paypal", "ApplePay", "GooglePay", "Ach"))
         model.addAttribute("orders", ordersClient.getMe(token))
         return "me"
+    }
+
+    @PostMapping("/me/update-email")
+    fun updateEmail(
+        @RequestParam email: String,
+        session: HttpSession,
+        redirectAttributes: RedirectAttributes
+    ): String {
+        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+        return try {
+            usersClient.updateEmail(token, email) ?: throw RuntimeException("Update failed")
+            redirectAttributes.addFlashAttribute("successEmail", "Email updated successfully")
+            "redirect:/me"
+        } catch (e: Exception) {
+            redirectAttributes.addFlashAttribute("errorEmail", "Failed to update email. It may already be in use.")
+            "redirect:/me"
+        }
+    }
+
+    @PostMapping("/me/payments/add")
+    fun addPaymentMethod(
+        @RequestParam type: String,
+        @RequestParam label: String,
+        session: HttpSession,
+        redirectAttributes: RedirectAttributes
+    ): String {
+        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+        return try {
+            paymentsClient.addMethod(token, type, label) ?: throw RuntimeException("Add failed")
+            redirectAttributes.addFlashAttribute("successPayments", "Payment method added")
+            "redirect:/me"
+        } catch (e: Exception) {
+            redirectAttributes.addFlashAttribute("errorPayments", "Failed to add payment method")
+            "redirect:/me"
+        }
+    }
+
+    @PostMapping("/me/payments/{methodId}/update")
+    fun updatePaymentMethod(
+        @PathVariable methodId: UUID,
+        @RequestParam label: String,
+        @RequestParam(defaultValue = "false") isDefault: Boolean,
+        session: HttpSession,
+        redirectAttributes: RedirectAttributes
+    ): String {
+        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+        return try {
+            paymentsClient.updateMethod(token, methodId, label, isDefault) ?: throw RuntimeException("Update failed")
+            redirectAttributes.addFlashAttribute("successPayments", "Payment method updated")
+            "redirect:/me"
+        } catch (e: Exception) {
+            redirectAttributes.addFlashAttribute("errorPayments", "Failed to update payment method")
+            "redirect:/me"
+        }
+    }
+
+    @PostMapping("/me/payments/{methodId}/delete")
+    fun deletePaymentMethod(
+        @PathVariable methodId: UUID,
+        session: HttpSession,
+        redirectAttributes: RedirectAttributes
+    ): String {
+        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+        return try {
+            paymentsClient.deleteMethod(token, methodId)
+            redirectAttributes.addFlashAttribute("successPayments", "Payment method removed")
+            "redirect:/me"
+        } catch (e: Exception) {
+            redirectAttributes.addFlashAttribute("errorPayments", "Failed to remove payment method")
+            "redirect:/me"
+        }
     }
 
     @GetMapping("/login")
