@@ -11,6 +11,7 @@ data class LoginRequest(val email: String, val password: String)
 data class RegisterRequest(val username: String, val email: String, val password: String)
 data class LoginResponse(val token: String, val userId: UUID, val username: String, val email: String)
 data class UserResponse(val userId: UUID, val username: String, val email: String)
+data class UpdateEmailRequest(val email: String)
 
 @Component
 class UsersClient(@Value("\${services.users.url}") baseUrl: String) {
@@ -40,6 +41,16 @@ class UsersClient(@Value("\${services.users.url}") baseUrl: String) {
             .uri("/api/users/me")
             .header("Authorization", "Bearer $token")
             .let { spec -> MDC.get("traceId")?.let { spec.header("X-Trace-Id", it) } ?: spec }
+            .retrieve()
+            .bodyToMono<UserResponse>()
+            .block()
+
+    fun updateEmail(token: String, email: String): UserResponse? =
+        webClient.patch()
+            .uri("/api/users/me/email")
+            .header("Authorization", "Bearer $token")
+            .let { spec -> MDC.get("traceId")?.let { spec.header("X-Trace-Id", it) } ?: spec }
+            .bodyValue(UpdateEmailRequest(email))
             .retrieve()
             .bodyToMono<UserResponse>()
             .block()

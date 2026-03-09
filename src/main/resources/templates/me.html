@@ -19,6 +19,19 @@
         th { text-align: left; padding: 0.4rem 0.75rem; background: #f3f4f6; color: #374151; font-weight: 600; }
         td { padding: 0.4rem 0.75rem; border-top: 1px solid #e5e7eb; }
         .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; background: #dbeafe; color: #1d4ed8; }
+        .success { color: #15803d; background: #dcfce7; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 0.75rem; font-size: 0.875rem; }
+        .error-msg { color: #b91c1c; background: #fee2e2; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 0.75rem; font-size: 0.875rem; }
+        .btn-sm { background: #2563eb; color: white; border: none; padding: 0.25rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .btn-sm:hover { background: #1d4ed8; }
+        .btn-danger { background: #dc2626; color: white; border: none; padding: 0.25rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-link { background: none; border: none; color: #2563eb; cursor: pointer; font-size: 0.875rem; padding: 0; text-decoration: underline; }
+        details summary { cursor: pointer; list-style: none; }
+        details summary::-webkit-details-marker { display: none; }
+        details[open] summary { margin-bottom: 0.5rem; }
+        .inline-form { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-top: 0.4rem; }
+        .inline-form input, .inline-form select { padding: 0.25rem 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.875rem; }
+        label.check-label { font-size: 0.875rem; display: flex; align-items: center; gap: 0.3rem; }
     </style>
 </head>
 <body>
@@ -34,16 +47,86 @@
     <!-- Profile card -->
     <div class="card">
         <h2>Profile</h2>
+        <div th:if="${successEmail}" class="success" th:text="${successEmail}"></div>
+        <div th:if="${errorEmail}" class="error-msg" th:text="${errorEmail}"></div>
         <div class="field"><span>Username:</span> <strong th:text="${user.username}"></strong></div>
         <div class="field"><span>Email:</span> <strong th:text="${user.email}"></strong></div>
         <div class="field"><span>User ID:</span> <code th:text="${user.userId}"></code></div>
+        <div style="margin-top: 0.75rem;">
+            <details>
+                <summary><button type="button" class="btn-link">Change email</button></summary>
+                <form method="post" action="/me/update-email" th:action="@{/me/update-email}">
+                    <div class="inline-form">
+                        <input type="email" name="email" th:placeholder="${user.email}" required>
+                        <button type="submit" class="btn-sm">Update</button>
+                    </div>
+                </form>
+            </details>
+        </div>
     </div>
 
     <!-- Payments card -->
     <div class="card">
         <h2>Payment Methods</h2>
-        <div th:if="${payments == null}" class="unavailable">Payments service unavailable</div>
-        <div th:if="${payments != null}" class="field" th:text="${payments}"></div>
+        <div th:if="${successPayments}" class="success" th:text="${successPayments}"></div>
+        <div th:if="${errorPayments}" class="error-msg" th:text="${errorPayments}"></div>
+        <div th:if="${paymentMethods == null}" class="unavailable">Payments service unavailable</div>
+        <div th:if="${paymentMethods != null}">
+            <div th:if="${#lists.isEmpty(paymentMethods)}" class="unavailable">No payment methods on file</div>
+            <table th:if="${!#lists.isEmpty(paymentMethods)}">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Label</th>
+                        <th>Default</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="m : ${paymentMethods}">
+                        <td th:text="${m.type}"></td>
+                        <td th:text="${m.label}"></td>
+                        <td><span th:if="${m.isDefault}" class="badge">Default</span></td>
+                        <td>
+                            <details>
+                                <summary><button type="button" class="btn-sm">Edit</button></summary>
+                                <form method="post" th:action="@{/me/payments/{id}/update(id=${m.userPaymentMethodId})}">
+                                    <div class="inline-form">
+                                        <input type="text" name="label" th:value="${m.label}" required>
+                                        <label class="check-label">
+                                            <input type="checkbox" name="isDefault" value="true" th:checked="${m.isDefault}">
+                                            Default
+                                        </label>
+                                        <button type="submit" class="btn-sm">Save</button>
+                                    </div>
+                                </form>
+                            </details>
+                            <form method="post" th:action="@{/me/payments/{id}/delete(id=${m.userPaymentMethodId})}" style="display:inline;"
+                                  onsubmit="return confirm('Remove this payment method?')">
+                                <button type="submit" class="btn-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Add payment method -->
+            <div style="margin-top: 1rem;">
+                <details>
+                    <summary><button type="button" class="btn-link">+ Add payment method</button></summary>
+                    <form method="post" th:action="@{/me/payments/add}" style="margin-top: 0.5rem;">
+                        <div class="inline-form">
+                            <select name="type" required>
+                                <option value="">— Select type —</option>
+                                <option th:each="t : ${paymentMethodTypes}" th:value="${t}" th:text="${t}"></option>
+                            </select>
+                            <input type="text" name="label" placeholder="Label" required>
+                            <button type="submit" class="btn-sm">Add</button>
+                        </div>
+                    </form>
+                </details>
+            </div>
+        </div>
     </div>
 
     <!-- Orders card -->
