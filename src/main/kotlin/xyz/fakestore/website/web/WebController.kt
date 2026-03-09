@@ -5,8 +5,11 @@ import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.mvc.support.RedirectAttributes
+import xyz.fakestore.website.client.CreateAddressRequest
 import xyz.fakestore.website.client.OrdersClient
 import xyz.fakestore.website.client.PaymentsClient
+import xyz.fakestore.website.client.ShippingClient
+import xyz.fakestore.website.client.UpdateAddressRequest
 import xyz.fakestore.website.client.UsersClient
 import java.util.UUID
 
@@ -14,7 +17,8 @@ import java.util.UUID
 class WebController(
     private val usersClient: UsersClient,
     private val paymentsClient: PaymentsClient,
-    private val ordersClient: OrdersClient
+    private val ordersClient: OrdersClient,
+    private val shippingClient: ShippingClient
 ) {
 
     @GetMapping("/")
@@ -31,6 +35,7 @@ class WebController(
         model.addAttribute("paymentMethods", paymentsClient.getMethods(token))
         model.addAttribute("paymentMethodTypes", listOf("CreditCard", "DebitCard", "Paypal", "ApplePay", "GooglePay", "Ach"))
         model.addAttribute("orders", ordersClient.getMe(token))
+        model.addAttribute("shippingAddresses", shippingClient.getAddresses(token))
         return "me"
     }
 
@@ -101,6 +106,70 @@ class WebController(
             "redirect:/me"
         } catch (e: Exception) {
             redirectAttributes.addFlashAttribute("errorPayments", "Failed to remove payment method")
+            "redirect:/me"
+        }
+    }
+
+    @PostMapping("/me/shipping/add")
+    fun addShippingAddress(
+        @RequestParam label: String,
+        @RequestParam street: String,
+        @RequestParam city: String,
+        @RequestParam state: String,
+        @RequestParam postalCode: String,
+        @RequestParam country: String,
+        session: HttpSession,
+        redirectAttributes: RedirectAttributes
+    ): String {
+        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+        return try {
+            shippingClient.addAddress(token, CreateAddressRequest(label, street, city, state, postalCode, country))
+                ?: throw RuntimeException("Add failed")
+            redirectAttributes.addFlashAttribute("successShipping", "Address added")
+            "redirect:/me"
+        } catch (e: Exception) {
+            redirectAttributes.addFlashAttribute("errorShipping", "Failed to add address")
+            "redirect:/me"
+        }
+    }
+
+    @PostMapping("/me/shipping/{id}/update")
+    fun updateShippingAddress(
+        @PathVariable id: UUID,
+        @RequestParam label: String,
+        @RequestParam street: String,
+        @RequestParam city: String,
+        @RequestParam state: String,
+        @RequestParam postalCode: String,
+        @RequestParam country: String,
+        session: HttpSession,
+        redirectAttributes: RedirectAttributes
+    ): String {
+        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+        return try {
+            shippingClient.updateAddress(token, id, UpdateAddressRequest(label, street, city, state, postalCode, country))
+                ?: throw RuntimeException("Update failed")
+            redirectAttributes.addFlashAttribute("successShipping", "Address updated")
+            "redirect:/me"
+        } catch (e: Exception) {
+            redirectAttributes.addFlashAttribute("errorShipping", "Failed to update address")
+            "redirect:/me"
+        }
+    }
+
+    @PostMapping("/me/shipping/{id}/delete")
+    fun deleteShippingAddress(
+        @PathVariable id: UUID,
+        session: HttpSession,
+        redirectAttributes: RedirectAttributes
+    ): String {
+        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+        return try {
+            shippingClient.deleteAddress(token, id)
+            redirectAttributes.addFlashAttribute("successShipping", "Address removed")
+            "redirect:/me"
+        } catch (e: Exception) {
+            redirectAttributes.addFlashAttribute("errorShipping", "Failed to remove address")
             "redirect:/me"
         }
     }
