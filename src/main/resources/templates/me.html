@@ -129,6 +129,70 @@
         </div>
     </div>
 
+    <!-- Shipping Addresses card -->
+    <div class="card">
+        <h2>Shipping Addresses</h2>
+        <div th:if="${successShipping}" class="success" th:text="${successShipping}"></div>
+        <div th:if="${errorShipping}" class="error-msg" th:text="${errorShipping}"></div>
+        <div th:if="${shippingAddresses == null}" class="unavailable">Shipping service unavailable</div>
+        <div th:if="${shippingAddresses != null}">
+            <div th:if="${#lists.isEmpty(shippingAddresses)}" class="unavailable">No shipping addresses on file</div>
+            <table th:if="${!#lists.isEmpty(shippingAddresses)}">
+                <thead>
+                    <tr>
+                        <th>Label</th>
+                        <th>Address</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="a : ${shippingAddresses}">
+                        <td th:text="${a.label}"></td>
+                        <td th:text="${a.street + ', ' + a.city + ', ' + a.state + ' ' + a.postalCode + ', ' + a.country}"></td>
+                        <td>
+                            <details>
+                                <summary><button type="button" class="btn-sm">Edit</button></summary>
+                                <form method="post" th:action="@{/me/shipping/{id}/update(id=${a.id})}" style="margin-top:0.4rem;">
+                                    <div class="inline-form">
+                                        <input type="text" name="label" th:value="${a.label}" placeholder="Label" required>
+                                        <input type="text" name="street" th:value="${a.street}" placeholder="Street" required>
+                                        <input type="text" name="city" th:value="${a.city}" placeholder="City" required>
+                                        <input type="text" name="state" th:value="${a.state}" placeholder="State" required>
+                                        <input type="text" name="postalCode" th:value="${a.postalCode}" placeholder="Postal code" required>
+                                        <input type="text" name="country" th:value="${a.country}" placeholder="Country" required>
+                                        <button type="submit" class="btn-sm">Save</button>
+                                    </div>
+                                </form>
+                            </details>
+                            <form method="post" th:action="@{/me/shipping/{id}/delete(id=${a.id})}" style="display:inline;"
+                                  onsubmit="return confirm('Remove this address?')">
+                                <button type="submit" class="btn-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Add address -->
+            <div style="margin-top: 1rem;">
+                <details>
+                    <summary><button type="button" class="btn-link">+ Add shipping address</button></summary>
+                    <form method="post" th:action="@{/me/shipping/add}" style="margin-top: 0.5rem;">
+                        <div class="inline-form">
+                            <input type="text" name="label" placeholder="Label (e.g. Home)" required>
+                            <input type="text" name="street" placeholder="Street" required>
+                            <input type="text" name="city" placeholder="City" required>
+                            <input type="text" name="state" placeholder="State" required>
+                            <input type="text" name="postalCode" placeholder="Postal code" required>
+                            <input type="text" name="country" placeholder="Country" required>
+                            <button type="submit" class="btn-sm">Add</button>
+                        </div>
+                    </form>
+                </details>
+            </div>
+        </div>
+    </div>
+
     <!-- Orders card -->
     <div class="card">
         <h2>Orders</h2>
