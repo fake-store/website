@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Fakestore Admin - Add Product</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
+        nav { background: #111827; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        nav h1 { margin: 0; font-size: 1.25rem; }
+        nav h1 a { color: white; text-decoration: none; }
+        nav span { font-size: 0.75rem; color: #6b7280; }
+        nav a { color: #9ca3af; text-decoration: none; font-size: 0.875rem; }
+        nav a:hover { color: white; }
+        main { padding: 2rem; max-width: 600px; margin: 0 auto; }
+        .card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .card h2 { margin-top: 0; font-size: 1.1rem; color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; }
+        label { display: block; font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.25rem; margin-top: 1rem; }
+        input[type=text], input[type=number], textarea { width: 100%; box-sizing: border-box; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.875rem; }
+        textarea { height: 100px; resize: vertical; }
+        .btn { background: #2563eb; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 4px; cursor: pointer; font-size: 0.875rem; margin-top: 1.25rem; }
+        .btn:hover { background: #1d4ed8; }
+        .success { background: #dcfce7; color: #15803d; padding: 0.6rem 0.9rem; border-radius: 4px; font-size: 0.875rem; margin-bottom: 1rem; }
+        .error { background: #fee2e2; color: #b91c1c; padding: 0.6rem 0.9rem; border-radius: 4px; font-size: 0.875rem; margin-bottom: 1rem; }
+        .note { font-size: 0.78rem; color: #9ca3af; margin-top: 0.25rem; }
+    </style>
+</head>
+<body>
+<nav>
+    <h1><a href="/admin">Fakestore Admin</a></h1>
+    <div style="display:flex;gap:1.5rem;align-items:center;">
+        <a href="/">Store</a>
+        <span>⚠ Unsecured</span>
+    </div>
+</nav>
+<main>
+    <div class="card">
+        <h2>Add Product</h2>
+        <div th:if="${success}" class="success" th:text="${success}"></div>
+        <div th:if="${error}" class="error" th:text="${error}"></div>
+        <form method="post" th:action="@{/admin/products/add}">
+            <label for="title">Title</label>
+            <input type="text" id="title" name="title" required>
+
+            <label for="description">Description</label>
+            <textarea id="description" name="description"></textarea>
+
+            <label for="price">Price</label>
+            <input type="number" id="price" name="price" step="0.01" min="0" required>
+
+            <label>Image</label>
+            <p class="note">Image upload not yet available. Images will be served from <code>/images/</code> via static file server.</p>
+
+            <button type="submit" class="btn">Add Product</button>
+        </form>
+    </div>
+</main>
+</body>
+</html>

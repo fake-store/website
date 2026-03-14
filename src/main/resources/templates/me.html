@@ -9,6 +9,17 @@
         nav h1 { margin: 0; font-size: 1.25rem; }
         nav a { color: white; text-decoration: none; font-size: 0.875rem; }
         nav a:hover { text-decoration: underline; }
+        .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .cart-btn { background: white; color: #2563eb; border: none; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .cart-btn:hover { background: #dbeafe; }
+        .user-menu { position: relative; }
+        .user-menu summary { list-style: none; cursor: pointer; font-size: 0.875rem; color: white; }
+        .user-menu summary::-webkit-details-marker { display: none; }
+        .user-menu summary::after { content: " ▾"; }
+        .user-menu-dropdown { position: absolute; right: 0; top: 100%; margin-top: 0.4rem; background: white; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); min-width: 150px; z-index: 100; overflow: hidden; }
+        .user-menu-dropdown a { display: block; padding: 0.6rem 1rem; color: #111827; font-size: 0.875rem; text-decoration: none; }
+        .user-menu-dropdown a:hover { background: #f3f4f6; }
+        .user-menu-dropdown hr { margin: 0; border: none; border-top: 1px solid #e5e7eb; }
         main { padding: 2rem; max-width: 900px; margin: 0 auto; display: grid; gap: 1.5rem; }
         .card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .card h2 { margin-top: 0; font-size: 1.1rem; color: #1e40af; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; }
@@ -36,10 +47,18 @@
 </head>
 <body>
 <nav>
-    <h1>Fakestore</h1>
-    <div>
-        <span th:text="${user.username}" style="margin-right: 1rem;"></span>
-        <a href="/logout">Sign out</a>
+    <h1><a href="/" style="color:white;text-decoration:none;">Fakestore</a></h1>
+    <div class="nav-right">
+        <a href="/cart" class="cart-btn">Cart</a>
+        <details class="user-menu">
+            <summary th:text="${user.username}"></summary>
+            <div class="user-menu-dropdown">
+                <a href="/me">My Account</a>
+                <a href="/orders">My Orders</a>
+                <hr>
+                <a href="/logout">Sign out</a>
+            </div>
+        </details>
     </div>
 </nav>
 <main>
@@ -55,7 +74,7 @@
         <div style="margin-top: 0.75rem;">
             <details>
                 <summary><button type="button" class="btn-link">Change email</button></summary>
-                <form method="post" action="/me/update-email" th:action="@{/me/update-email}">
+                <form method="post" th:action="@{/me/update-email}">
                     <div class="inline-form">
                         <input type="email" name="email" th:placeholder="${user.email}" required>
                         <button type="submit" class="btn-sm">Update</button>
@@ -76,10 +95,7 @@
             <table th:if="${!#lists.isEmpty(paymentMethods)}">
                 <thead>
                     <tr>
-                        <th>Type</th>
-                        <th>Label</th>
-                        <th>Default</th>
-                        <th>Actions</th>
+                        <th>Type</th><th>Label</th><th>Default</th><th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -94,8 +110,7 @@
                                     <div class="inline-form">
                                         <input type="text" name="label" th:value="${m.label}" required>
                                         <label class="check-label">
-                                            <input type="checkbox" name="isDefault" value="true" th:checked="${m.isDefault}">
-                                            Default
+                                            <input type="checkbox" name="isDefault" value="true" th:checked="${m.isDefault}">Default
                                         </label>
                                         <button type="submit" class="btn-sm">Save</button>
                                     </div>
@@ -109,8 +124,6 @@
                     </tr>
                 </tbody>
             </table>
-
-            <!-- Add payment method -->
             <div style="margin-top: 1rem;">
                 <details>
                     <summary><button type="button" class="btn-link">+ Add payment method</button></summary>
@@ -129,6 +142,28 @@
         </div>
     </div>
 
+    <!-- Recent Payments card -->
+    <div class="card">
+        <h2>Recent Payments</h2>
+        <div th:if="${recentPayments == null}" class="unavailable">Payments service unavailable</div>
+        <div th:if="${recentPayments != null}">
+            <div th:if="${#lists.isEmpty(recentPayments)}" class="unavailable">No payment history</div>
+            <table th:if="${!#lists.isEmpty(recentPayments)}">
+                <thead>
+                    <tr><th>Date</th><th>Order</th><th>Amount</th><th>Currency</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="p : ${recentPayments}">
+                        <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+                        <td><code th:text="${#strings.substring(p.orderId.toString(), 0, 8)}">…</code></td>
+                        <td th:text="${p.amount}"></td>
+                        <td th:text="${p.currency}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Shipping Addresses card -->
     <div class="card">
         <h2>Shipping Addresses</h2>
@@ -139,11 +174,7 @@
             <div th:if="${#lists.isEmpty(shippingAddresses)}" class="unavailable">No shipping addresses on file</div>
             <table th:if="${!#lists.isEmpty(shippingAddresses)}">
                 <thead>
-                    <tr>
-                        <th>Label</th>
-                        <th>Address</th>
-                        <th>Actions</th>
-                    </tr>
+                    <tr><th>Label</th><th>Address</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
                     <tr th:each="a : ${shippingAddresses}">
@@ -172,8 +203,6 @@
                     </tr>
                 </tbody>
             </table>
-
-            <!-- Add address -->
             <div style="margin-top: 1rem;">
                 <details>
                     <summary><button type="button" class="btn-link">+ Add shipping address</button></summary>
@@ -190,16 +219,6 @@
                     </form>
                 </details>
             </div>
-        </div>
-    </div>
-
-    <!-- Orders card -->
-    <div class="card">
-        <h2>Orders</h2>
-        <div th:if="${orders == null}" class="unavailable">Orders service unavailable</div>
-        <div th:if="${orders != null}">
-            <div class="field" th:text="${orders.message}"></div>
-            <div class="field"><span>User ID:</span> <code th:text="${orders.userId}"></code></div>
         </div>
     </div>
 
