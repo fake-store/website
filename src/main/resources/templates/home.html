@@ -37,6 +37,9 @@
         .product-tile .title { font-weight: 600; font-size: 0.95rem; color: #111827; }
         .product-tile .desc { font-size: 0.8rem; color: #6b7280; flex: 1; }
         .product-tile .price { font-size: 1rem; font-weight: 700; color: #2563eb; margin-top: 0.5rem; }
+        .product-tile .actions { padding: 0 1rem 1rem; }
+        .add-to-cart { width: 100%; background: #2563eb; color: white; border: none; padding: 0.5rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+        .add-to-cart:hover { background: #1d4ed8; }
         .unavailable { color: #9ca3af; font-style: italic; padding: 2rem 0; }
         .empty { color: #6b7280; padding: 2rem 0; }
     </style>
@@ -45,13 +48,13 @@
 <nav>
     <h1><a href="/">Fakestore</a></h1>
     <div class="nav-right">
-        <a href="/cart" class="cart-btn">Cart</a>
+        <a href="/cart" class="cart-btn" th:text="${cartCount > 0 ? 'Cart (' + cartCount + ')' : 'Cart'}">Cart</a>
         <div th:if="${username != null}">
             <details class="user-menu">
                 <summary th:text="${username}"></summary>
                 <div class="user-menu-dropdown">
                     <a href="/me">My Account</a>
-                    <a href="/orders">My Orders</a>
+                    <a href="/me/orders">My Orders</a>
                     <hr>
                     <a href="/logout">Sign out</a>
                 </div>
@@ -80,6 +83,15 @@
                     <div class="title" th:text="${p.title}"></div>
                     <div class="desc" th:text="${p.description}"></div>
                     <div class="price" th:text="'$' + ${p.price}"></div>
+                </div>
+                <div class="actions">
+                    <form method="post" th:action="@{/cart/add}">
+                        <input type="hidden" name="productId" th:value="${p.id}">
+                        <input type="hidden" name="title" th:value="${p.title}">
+                        <input type="hidden" name="price" th:value="${p.price}">
+                        <input type="hidden" name="quantity" value="1">
+                        <button type="submit" class="add-to-cart">Add to Cart</button>
+                    </form>
                 </div>
             </div>
         </div>

@@ -43,18 +43,23 @@
         .inline-form { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-top: 0.4rem; }
         .inline-form input, .inline-form select { padding: 0.25rem 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.875rem; }
         label.check-label { font-size: 0.875rem; display: flex; align-items: center; gap: 0.3rem; }
+        .section-links { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.25rem; }
+        .section-link { display: block; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; color: inherit; }
+        .section-link:hover { border-color: #2563eb; background: #eff6ff; }
+        .section-link-title { font-weight: 600; color: #1e40af; margin-bottom: 0.25rem; }
+        .section-link-desc { font-size: 0.8rem; color: #6b7280; }
     </style>
 </head>
 <body>
 <nav>
     <h1><a href="/" style="color:white;text-decoration:none;">Fakestore</a></h1>
     <div class="nav-right">
-        <a href="/cart" class="cart-btn">Cart</a>
+        <a href="/cart" class="cart-btn" th:text="${cartCount > 0 ? 'Cart (' + cartCount + ')' : 'Cart'}">Cart</a>
         <details class="user-menu">
             <summary th:text="${user.username}"></summary>
             <div class="user-menu-dropdown">
                 <a href="/me">My Account</a>
-                <a href="/orders">My Orders</a>
+                <a href="/me/orders">My Orders</a>
                 <hr>
                 <a href="/logout">Sign out</a>
             </div>
@@ -84,70 +89,31 @@
         </div>
     </div>
 
-    <!-- Payments card -->
+    <!-- Recent Orders card -->
     <div class="card">
-        <h2>Payment Methods</h2>
-        <div th:if="${successPayments}" class="success" th:text="${successPayments}"></div>
-        <div th:if="${errorPayments}" class="error-msg" th:text="${errorPayments}"></div>
-        <div th:if="${paymentMethods == null}" class="unavailable">Payments service unavailable</div>
-        <div th:if="${paymentMethods != null}">
-            <div th:if="${#lists.isEmpty(paymentMethods)}" class="unavailable">No payment methods on file</div>
-            <table th:if="${!#lists.isEmpty(paymentMethods)}">
-                <thead>
-                    <tr>
-                        <th>Type</th><th>Label</th><th>Default</th><th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="m : ${paymentMethods}">
-                        <td th:text="${m.type}"></td>
-                        <td th:text="${m.label}"></td>
-                        <td><span th:if="${m.isDefault}" class="badge">Default</span></td>
-                        <td>
-                            <details>
-                                <summary><button type="button" class="btn-sm">Edit</button></summary>
-                                <form method="post" th:action="@{/me/payments/{id}/update(id=${m.userPaymentMethodId})}">
-                                    <div class="inline-form">
-                                        <input type="text" name="label" th:value="${m.label}" required>
-                                        <label class="check-label">
-                                            <input type="checkbox" name="isDefault" value="true" th:checked="${m.isDefault}">Default
-                                        </label>
-                                        <button type="submit" class="btn-sm">Save</button>
-                                    </div>
-                                </form>
-                            </details>
-                            <form method="post" th:action="@{/me/payments/{id}/delete(id=${m.userPaymentMethodId})}" style="display:inline;"
-                                  onsubmit="return confirm('Remove this payment method?')">
-                                <button type="submit" class="btn-danger">Remove</button>
-                            </form>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <div style="margin-top: 1rem;">
-                <details>
-                    <summary><button type="button" class="btn-link">+ Add payment method</button></summary>
-                    <form method="post" th:action="@{/me/payments/add}" style="margin-top: 0.5rem;">
-                        <div class="inline-form">
-                            <select name="type" required>
-                                <option value="">— Select type —</option>
-                                <option th:each="t : ${paymentMethodTypes}" th:value="${t}" th:text="${t}"></option>
-                            </select>
-                            <input type="text" name="label" placeholder="Label" required>
-                            <button type="submit" class="btn-sm">Add</button>
-                        </div>
-                    </form>
-                </details>
-            </div>
-        </div>
+        <h2>Recent Orders <a href="/me/orders" style="font-size:0.8rem;font-weight:400;color:#2563eb;margin-left:0.5rem;">View all</a></h2>
+        <div th:if="${recentOrders == null or #lists.isEmpty(recentOrders)}" class="unavailable">No orders yet.</div>
+        <table th:if="${recentOrders != null and !#lists.isEmpty(recentOrders)}">
+            <thead>
+                <tr><th>Order</th><th>Date</th><th>Amount</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                <tr th:each="o : ${recentOrders}">
+                    <td><a th:href="@{/me/orders/{id}(id=${o.id})}" th:text="${#strings.substring(o.id.toString(), 0, 8) + '…'}" style="font-family:monospace;color:#2563eb;"></a></td>
+                    <td th:text="${#temporals.format(o.createdAt, 'yyyy-MM-dd')}"></td>
+                    <td th:text="'$' + ${#numbers.formatDecimal(o.amount, 1, 2)}"></td>
+                    <td><span class="badge" th:text="${o.status}"></span></td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
     <!-- Recent Payments card -->
     <div class="card">
-        <h2>Recent Payments</h2>
-        <div th:if="${recentPayments == null}" class="unavailable">Payments service unavailable</div>
+        <h2>Recent Payments <a href="/payments" style="font-size:0.8rem;font-weight:400;color:#2563eb;margin-left:0.5rem;">View all</a></h2>
+        <div th:if="${recentPayments == null}" class="unavailable">Payments service unavailable.</div>
         <div th:if="${recentPayments != null}">
-            <div th:if="${#lists.isEmpty(recentPayments)}" class="unavailable">No payment history</div>
+            <div th:if="${#lists.isEmpty(recentPayments)}" class="unavailable">No payment history.</div>
             <table th:if="${!#lists.isEmpty(recentPayments)}">
                 <thead>
                     <tr><th>Date</th><th>Order</th><th>Amount</th><th>Currency</th></tr>
@@ -155,7 +121,7 @@
                 <tbody>
                     <tr th:each="p : ${recentPayments}">
                         <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
-                        <td><code th:text="${#strings.substring(p.orderId.toString(), 0, 8)}">…</code></td>
+                        <td><a th:href="@{/me/orders/{id}(id=${p.orderId})}" th:text="${#strings.substring(p.orderId.toString(), 0, 8) + '…'}" style="font-family:monospace;color:#2563eb;"></a></td>
                         <td th:text="${p.amount}"></td>
                         <td th:text="${p.currency}"></td>
                     </tr>
@@ -164,61 +130,18 @@
         </div>
     </div>
 
-    <!-- Shipping Addresses card -->
+    <!-- Section links -->
     <div class="card">
-        <h2>Shipping Addresses</h2>
-        <div th:if="${successShipping}" class="success" th:text="${successShipping}"></div>
-        <div th:if="${errorShipping}" class="error-msg" th:text="${errorShipping}"></div>
-        <div th:if="${shippingAddresses == null}" class="unavailable">Shipping service unavailable</div>
-        <div th:if="${shippingAddresses != null}">
-            <div th:if="${#lists.isEmpty(shippingAddresses)}" class="unavailable">No shipping addresses on file</div>
-            <table th:if="${!#lists.isEmpty(shippingAddresses)}">
-                <thead>
-                    <tr><th>Label</th><th>Address</th><th>Actions</th></tr>
-                </thead>
-                <tbody>
-                    <tr th:each="a : ${shippingAddresses}">
-                        <td th:text="${a.label}"></td>
-                        <td th:text="${a.street + ', ' + a.city + ', ' + a.state + ' ' + a.postalCode + ', ' + a.country}"></td>
-                        <td>
-                            <details>
-                                <summary><button type="button" class="btn-sm">Edit</button></summary>
-                                <form method="post" th:action="@{/me/shipping/{id}/update(id=${a.id})}" style="margin-top:0.4rem;">
-                                    <div class="inline-form">
-                                        <input type="text" name="label" th:value="${a.label}" placeholder="Label" required>
-                                        <input type="text" name="street" th:value="${a.street}" placeholder="Street" required>
-                                        <input type="text" name="city" th:value="${a.city}" placeholder="City" required>
-                                        <input type="text" name="state" th:value="${a.state}" placeholder="State" required>
-                                        <input type="text" name="postalCode" th:value="${a.postalCode}" placeholder="Postal code" required>
-                                        <input type="text" name="country" th:value="${a.country}" placeholder="Country" required>
-                                        <button type="submit" class="btn-sm">Save</button>
-                                    </div>
-                                </form>
-                            </details>
-                            <form method="post" th:action="@{/me/shipping/{id}/delete(id=${a.id})}" style="display:inline;"
-                                  onsubmit="return confirm('Remove this address?')">
-                                <button type="submit" class="btn-danger">Remove</button>
-                            </form>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <div style="margin-top: 1rem;">
-                <details>
-                    <summary><button type="button" class="btn-link">+ Add shipping address</button></summary>
-                    <form method="post" th:action="@{/me/shipping/add}" style="margin-top: 0.5rem;">
-                        <div class="inline-form">
-                            <input type="text" name="label" placeholder="Label (e.g. Home)" required>
-                            <input type="text" name="street" placeholder="Street" required>
-                            <input type="text" name="city" placeholder="City" required>
-                            <input type="text" name="state" placeholder="State" required>
-                            <input type="text" name="postalCode" placeholder="Postal code" required>
-                            <input type="text" name="country" placeholder="Country" required>
-                            <button type="submit" class="btn-sm">Add</button>
-                        </div>
-                    </form>
-                </details>
-            </div>
+        <h2>Account Sections</h2>
+        <div class="section-links">
+            <a href="/me/payment-methods" class="section-link">
+                <div class="section-link-title">Payment Methods</div>
+                <div class="section-link-desc">Manage cards, bank accounts, and digital wallets</div>
+            </a>
+            <a href="/me/shipping" class="section-link">
+                <div class="section-link-title">Shipping Addresses</div>
+                <div class="section-link-desc">Manage delivery addresses</div>
+            </a>
         </div>
     </div>
 
