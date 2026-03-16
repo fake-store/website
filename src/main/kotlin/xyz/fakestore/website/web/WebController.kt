@@ -1,7 +1,10 @@
 package xyz.fakestore.website.web
 
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import jakarta.servlet.http.HttpSession
 import org.slf4j.LoggerFactory
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
@@ -22,7 +25,8 @@ class WebController(
     private val paymentsClient: PaymentsClient,
     private val ordersClient: OrdersClient,
     private val shippingClient: ShippingClient,
-    private val catalogClient: CatalogClient
+    private val catalogClient: CatalogClient,
+    private val cartService: CartService
 ) {
     private val log = LoggerFactory.getLogger(WebController::class.java)
 
@@ -54,7 +58,7 @@ class WebController(
         model.addAttribute("paymentMethods", paymentsClient.getMethods(token))
         model.addAttribute("recentPayments", paymentsClient.getHistory(token))
         model.addAttribute("paymentMethodTypes", listOf("CreditCard", "DebitCard", "Paypal", "ApplePay", "GooglePay", "Ach"))
-        model.addAttribute("orders", ordersClient.getMe(token))
+        model.addAttribute("orders", ordersClient.getOrders(token)?.take(5))
         model.addAttribute("shippingAddresses", shippingClient.getAddresses(token))
         return "me"
     }
@@ -194,18 +198,127 @@ class WebController(
         }
     }
 
-    @GetMapping("/orders")
+    @GetMapping("/me/orders")
     fun ordersPage(session: HttpSession, model: Model): String {
         val token = session.getAttribute("token") as? String ?: return "redirect:/login"
         model.addAttribute("username", session.getAttribute("username"))
-        return "orders"
+        model.addAttribute("orders", ordersClient.getOrders(token))
+        return "me-orders"
+    }
+
+    @PostMapping("/cart/add")
+    fun addToCart(
+        @RequestParam productId: UUID,
+        @RequestParam title: String,
+        @RequestParam price: BigDecimal,
+        session: HttpSession,
+        request: HttpServletRequest,
+        response: HttpServletResponse
+    ): String {
+        val userId = (session.getAttribute("userId") as? String)?.let { UUID.fromString(it) }
+        cartService.addItem(userId, CartItem(productId, title, price), request, response)
+        return "redirect:/"
+    }
+
+    @PostMapping("/cart/remove/{productId}")
+    fun removeFromCart(
+        @PathVariable productId: UUID,
+        session: HttpSession,
+        request: HttpServletRequest,
+        response: HttpServletResponse
+    ): String {
+        val userId = (session.getAttribute("userId") as? String)?.let { UUID.fromString(it) }
+        cartService.removeItem(userId, productId, request, response)
+        return "redirect:/cart"
     }
 
     @GetMapping("/cart")
-    fun cartPage(session: HttpSession, model: Model): String {
+    fun cartPage(
+        session: HttpSession,
+        model: Model,
+        request: HttpServletRequest
+    ): String {
+        val userId = (session.getAttribute("userId") as? String)?.let { UUID.fromString(it) }
+        val cart = cartService.getItems(userId, request)
+        val total = cart.sumOf { it.price.multiply(BigDecimal(it.quantity)) }
+        model.addAttribute("username", session.getAttribute("username"))
+        model.addAttribute("cart", cart)
+        model.addAttribute("total", total)
+        return "cart"
+    }
+
+    @GetMapping("/checkout")
+    fun checkoutPage(
+        session: HttpSession,
+        model: Model,
+        request: HttpServletRequest
+    ): String {
+        val token = session.getAttribute("token") as? String
+        val userId = (session.getAttribute("userId") as? String)?.let { UUID.fromString(it) }
+        val cart = cartService.getItems(userId, request)
+        if (cart.isEmpty()) return "redirect:/cart"
+        val total = cart.sumOf { it.price.multiply(BigDecimal(it.quantity)) }
+        model.addAttribute("username", session.getAttribute("username"))
+        model.addAttribute("cart", cart)
+        model.addAttribute("total", total)
+        model.addAttribute("loggedIn", userId != null)
+        if (token != null) {
+            model.addAttribute("paymentMethods", paymentsClient.getMethods(token))
+            model.addAttribute("shippingAddresses", shippingClient.getAddresses(token))
+        }
+        return "checkout"
+    }
+
+    @PostMapping("/checkout/place-order")
+    fun placeOrder(
+        @RequestParam paymentMethodId: UUID,
+        @RequestParam shippingAddressId: UUID,
+        session: HttpSession,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+        redirectAttributes: RedirectAttributes
+    ): String {
+        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+        val userId = (session.getAttribute("userId") as? String)?.let { UUID.fromString(it) }
+            ?: return "redirect:/login"
+        val cart = cartService.getItems(userId, request)
+        if (cart.isEmpty()) return "redirect:/cart"
+        return try {
+            val orderResponse = ordersClient.placeOrder(token, userId, paymentMethodId, shippingAddressId, cart)
+                ?: throw RuntimeException("Place order failed")
+            cartService.clearCart(userId, request, response)
+            "redirect:/me/orders/${orderResponse.orderId}"
+        } catch (e: Exception) {
+            log.error("Failed to place order", e)
+            redirectAttributes.addFlashAttribute("errorOrder", "Failed to place order. Please try again.")
+            "redirect:/checkout"
+        }
+    }
+
+    @GetMapping("/me/orders/{orderId}")
+    fun orderDetailPage(
+        @PathVariable orderId: UUID,
+        session: HttpSession,
+        model: Model
+    ): String {
         val token = session.getAttribute("token") as? String ?: return "redirect:/login"
         model.addAttribute("username", session.getAttribute("username"))
-        return "cart"
+        model.addAttribute("orderId", orderId)
+        model.addAttribute("order", ordersClient.getOrder(token, orderId))
+        return "me-order-detail"
+    }
+
+    @GetMapping("/me/orders/{orderId}/status", produces = ["application/json"])
+    @ResponseBody
+    fun orderStatusJson(
+        @PathVariable orderId: UUID,
+        session: HttpSession
+    ): ResponseEntity<*> {
+        val token = session.getAttribute("token") as? String
+            ?: return ResponseEntity.status(401).build<Any>()
+        val status = ordersClient.getOrderStatus(token, orderId)
+            ?: return ResponseEntity.notFound().build<Any>()
+        return ResponseEntity.ok(status)
     }
 
     @GetMapping("/login")
@@ -219,14 +332,17 @@ class WebController(
         @RequestParam email: String,
         @RequestParam password: String,
         session: HttpSession,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
         redirectAttributes: RedirectAttributes
     ): String {
         return try {
-            val response = usersClient.login(email, password)
+            val loginResponse = usersClient.login(email, password)
                 ?: throw RuntimeException("Login failed")
-            session.setAttribute("token", response.token)
-            session.setAttribute("username", response.username)
-            session.setAttribute("userId", response.userId.toString())
+            session.setAttribute("token", loginResponse.token)
+            session.setAttribute("username", loginResponse.username)
+            session.setAttribute("userId", loginResponse.userId.toString())
+            cartService.mergeAndClear(loginResponse.userId, request, response)
             "redirect:/me"
         } catch (e: Exception) {
             redirectAttributes.addFlashAttribute("error", "Invalid email or password")
@@ -249,11 +365,11 @@ class WebController(
         redirectAttributes: RedirectAttributes
     ): String {
         return try {
-            val response = usersClient.register(username, email, password)
+            val registerResponse = usersClient.register(username, email, password)
                 ?: throw RuntimeException("Registration failed")
-            session.setAttribute("token", response.token)
-            session.setAttribute("username", response.username)
-            session.setAttribute("userId", response.userId.toString())
+            session.setAttribute("token", registerResponse.token)
+            session.setAttribute("username", registerResponse.username)
+            session.setAttribute("userId", registerResponse.userId.toString())
             "redirect:/me"
         } catch (e: Exception) {
             redirectAttributes.addFlashAttribute("error", "Registration failed. The email may already be in use.")

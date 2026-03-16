@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Fakestore - Checkout</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
+        nav { background: #2563eb; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        nav h1 { margin: 0; font-size: 1.25rem; }
+        nav h1 a { color: white; text-decoration: none; }
+        nav a { color: white; text-decoration: none; font-size: 0.875rem; }
+        nav a:hover { text-decoration: underline; }
+        .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .cart-btn { background: white; color: #2563eb; border: none; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .cart-btn:hover { background: #dbeafe; }
+        .user-menu { position: relative; }
+        .user-menu summary { list-style: none; cursor: pointer; font-size: 0.875rem; color: white; }
+        .user-menu summary::-webkit-details-marker { display: none; }
+        .user-menu summary::after { content: " ▾"; }
+        .user-menu-dropdown { position: absolute; right: 0; top: 100%; margin-top: 0.4rem; background: white; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); min-width: 150px; z-index: 100; overflow: hidden; }
+        .user-menu-dropdown a { display: block; padding: 0.6rem 1rem; color: #111827; font-size: 0.875rem; text-decoration: none; }
+        .user-menu-dropdown a:hover { background: #f3f4f6; }
+        .user-menu-dropdown hr { margin: 0; border: none; border-top: 1px solid #e5e7eb; }
+        main { padding: 2rem; max-width: 960px; margin: 0 auto; }
+        h2 { font-size: 1.5rem; color: #111827; margin: 0 0 1.5rem; }
+        .checkout-grid { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: start; }
+        .card { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1rem; }
+        .card:last-child { margin-bottom: 0; }
+        .card h3 { font-size: 1rem; font-weight: 700; color: #111827; margin: 0 0 1rem; }
+        label.option { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; margin-bottom: 0.5rem; font-size: 0.9rem; }
+        label.option:hover { border-color: #93c5fd; background: #eff6ff; }
+        label.option input[type=radio] { margin-top: 0.1rem; accent-color: #2563eb; flex-shrink: 0; }
+        label.option .option-main { font-weight: 600; color: #111827; }
+        label.option .option-sub { color: #6b7280; font-size: 0.8rem; }
+        .unavailable { color: #9ca3af; font-style: italic; font-size: 0.875rem; }
+        .alert { padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.875rem; }
+        .alert-error { background: #fee2e2; color: #b91c1c; }
+        .sidebar { position: sticky; top: 1.5rem; }
+        .summary-card { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem; }
+        .summary-card h3 { font-size: 1rem; font-weight: 700; color: #111827; margin: 0 0 1rem; }
+        .summary-item { display: flex; justify-content: space-between; font-size: 0.875rem; color: #374151; padding: 0.35rem 0; }
+        .summary-item .item-name { flex: 1; color: #6b7280; }
+        .summary-item .item-qty { color: #9ca3af; margin: 0 0.5rem; }
+        .summary-divider { border: none; border-top: 1px solid #e5e7eb; margin: 0.75rem 0; }
+        .summary-total { display: flex; justify-content: space-between; font-size: 1rem; font-weight: 700; color: #111827; }
+        .summary-total .amount { color: #2563eb; }
+        .place-order-btn { width: 100%; margin-top: 1.25rem; background: #2563eb; color: white; border: none; padding: 0.875rem; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .place-order-btn:hover { background: #1d4ed8; }
+        .login-to-order-btn { display: block; text-align: center; text-decoration: none; background: #6b7280; cursor: default; }
+        .login-to-order-btn:hover { background: #4b5563; }
+        .back-link { display: block; margin-top: 0.75rem; text-align: center; color: #6b7280; font-size: 0.875rem; text-decoration: none; }
+        .back-link:hover { color: #2563eb; }
+    </style>
+</head>
+<body>
+<nav>
+    <h1><a href="/">Fakestore</a></h1>
+    <div class="nav-right">
+        <a href="/cart" class="cart-btn">Cart</a>
+        <details class="user-menu">
+            <summary th:text="${username}"></summary>
+            <div class="user-menu-dropdown">
+                <a href="/me">My Account</a>
+                <hr>
+                <a href="/logout">Sign out</a>
+            </div>
+        </details>
+    </div>
+</nav>
+<main>
+    <h2>Checkout</h2>
+    <div th:if="${errorOrder != null}" class="alert alert-error" th:text="${errorOrder}"></div>
+
+    <form method="post" th:action="@{/checkout/place-order}">
+        <div class="checkout-grid">
+            <div>
+                <div class="card">
+                    <h3>Payment Method</h3>
+                    <div th:if="${!loggedIn}" class="unavailable">
+                        <a href="/login" style="color:#2563eb;">Log in</a> to select a payment method.
+                    </div>
+                    <div th:if="${loggedIn and paymentMethods == null}" class="unavailable">Payment service unavailable.</div>
+                    <div th:if="${loggedIn and paymentMethods != null and #lists.isEmpty(paymentMethods)}" class="unavailable">
+                        No payment methods on file. <a href="/me" style="color:#2563eb;">Add one in My Account.</a>
+                    </div>
+                    <div th:if="${loggedIn and paymentMethods != null and !#lists.isEmpty(paymentMethods)}">
+                        <label th:each="pm : ${paymentMethods}" class="option">
+                            <input type="radio" name="paymentMethodId" th:value="${pm.userPaymentMethodId}" required>
+                            <div>
+                                <div class="option-main" th:text="${pm.label}"></div>
+                                <div class="option-sub" th:text="${pm.type}"></div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Shipping Address</h3>
+                    <div th:if="${!loggedIn}" class="unavailable">
+                        <a href="/login" style="color:#2563eb;">Log in</a> to select a shipping address.
+                    </div>
+                    <div th:if="${loggedIn and shippingAddresses == null}" class="unavailable">Shipping service unavailable.</div>
+                    <div th:if="${loggedIn and shippingAddresses != null and #lists.isEmpty(shippingAddresses)}" class="unavailable">
+                        No shipping addresses on file. <a href="/me" style="color:#2563eb;">Add one in My Account.</a>
+                    </div>
+                    <div th:if="${loggedIn and shippingAddresses != null and !#lists.isEmpty(shippingAddresses)}">
+                        <label th:each="addr : ${shippingAddresses}" class="option">
+                            <input type="radio" name="shippingAddressId" th:value="${addr.id}" required>
+                            <div>
+                                <div class="option-main" th:text="${addr.label}"></div>
+                                <div class="option-sub" th:text="${addr.street + ', ' + addr.city + ', ' + addr.state + ' ' + addr.postalCode}"></div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="summary-card">
+                    <h3>Order Summary</h3>
+                    <div th:each="item : ${cart}" class="summary-item">
+                        <span class="item-name" th:text="${item.title}"></span>
+                        <span class="item-qty" th:text="'x' + ${item.quantity}"></span>
+                        <span th:text="'$' + ${#numbers.formatDecimal(item.price.multiply(new java.math.BigDecimal(item.quantity)), 1, 2)}"></span>
+                    </div>
+                    <hr class="summary-divider">
+                    <div class="summary-total">
+                        <span>Total</span>
+                        <span class="amount" th:text="'$' + ${#numbers.formatDecimal(total, 1, 2)}"></span>
+                    </div>
+                    <button th:if="${loggedIn}" type="submit" class="place-order-btn">Place Order</button>
+                    <a th:unless="${loggedIn}" href="/login" class="place-order-btn login-to-order-btn">Log in to place order</a>
+                    <a href="/cart" class="back-link">← Back to cart</a>
+                </div>
+            </div>
+        </div>
+    </form>
+</main>
+</body>
+</html>

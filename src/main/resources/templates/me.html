@@ -30,6 +30,9 @@
         th { text-align: left; padding: 0.4rem 0.75rem; background: #f3f4f6; color: #374151; font-weight: 600; }
         td { padding: 0.4rem 0.75rem; border-top: 1px solid #e5e7eb; }
         .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; background: #dbeafe; color: #1d4ed8; }
+        .badge-paid { background: #dcfce7; color: #15803d; }
+        .badge-rejected { background: #fee2e2; color: #b91c1c; }
+        .badge-pending { background: #fef9c3; color: #854d0e; }
         .success { color: #15803d; background: #dcfce7; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 0.75rem; font-size: 0.875rem; }
         .error-msg { color: #b91c1c; background: #fee2e2; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 0.75rem; font-size: 0.875rem; }
         .btn-sm { background: #2563eb; color: white; border: none; padding: 0.25rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
@@ -158,6 +161,37 @@
                         <td><code th:text="${#strings.substring(p.orderId.toString(), 0, 8)}">…</code></td>
                         <td th:text="${p.amount}"></td>
                         <td th:text="${p.currency}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Orders card -->
+    <div class="card">
+        <h2 style="display:flex;justify-content:space-between;align-items:center;">
+            Recent Orders
+            <a href="/me/orders" style="font-size:0.8rem;font-weight:400;color:#2563eb;text-decoration:none;">View all →</a>
+        </h2>
+        <div th:if="${successOrder}" class="success" th:text="${successOrder}"></div>
+        <div th:if="${errorOrder}" class="error-msg" th:text="${errorOrder}"></div>
+        <div th:if="${orders == null}" class="unavailable">Orders service unavailable</div>
+        <div th:if="${orders != null}">
+            <div th:if="${#lists.isEmpty(orders)}" class="unavailable">No orders yet</div>
+            <table th:if="${!#lists.isEmpty(orders)}">
+                <thead>
+                    <tr><th>Date</th><th>Order ID</th><th>Amount</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="o : ${orders}">
+                        <td th:text="${#temporals.format(o.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+                        <td><a th:href="@{/me/orders/{id}(id=${o.id})}" style="color:#2563eb;text-decoration:none;font-family:monospace;"
+                               th:text="${#strings.substring(o.id.toString(), 0, 8)}">…</a></td>
+                        <td th:text="'$' + ${o.amount}"></td>
+                        <td>
+                            <span th:class="${'badge ' + (o.status == 'PAID' ? 'badge-paid' : (o.status == 'REJECTED' ? 'badge-rejected' : 'badge-pending'))}"
+                                  th:text="${o.status}"></span>
+                        </td>
                     </tr>
                 </tbody>
             </table>

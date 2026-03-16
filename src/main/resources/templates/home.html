@@ -37,6 +37,8 @@
         .product-tile .title { font-weight: 600; font-size: 0.95rem; color: #111827; }
         .product-tile .desc { font-size: 0.8rem; color: #6b7280; flex: 1; }
         .product-tile .price { font-size: 1rem; font-weight: 700; color: #2563eb; margin-top: 0.5rem; }
+        .product-tile .add-btn { margin-top: 0.75rem; width: 100%; background: #2563eb; color: white; border: none; padding: 0.5rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+        .product-tile .add-btn:hover { background: #1d4ed8; }
         .unavailable { color: #9ca3af; font-style: italic; padding: 2rem 0; }
         .empty { color: #6b7280; padding: 2rem 0; }
     </style>
@@ -80,6 +82,12 @@
                     <div class="title" th:text="${p.title}"></div>
                     <div class="desc" th:text="${p.description}"></div>
                     <div class="price" th:text="'$' + ${p.price}"></div>
+                    <form method="post" th:action="@{/cart/add}">
+                        <input type="hidden" name="productId" th:value="${p.id}">
+                        <input type="hidden" name="title" th:value="${p.title}">
+                        <input type="hidden" name="price" th:value="${p.price}">
+                        <button type="submit" class="add-btn">Add to Cart</button>
+                    </form>
                 </div>
             </div>
         </div>

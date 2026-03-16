@@ -7,6 +7,7 @@
         body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
         nav { background: #2563eb; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
         nav h1 { margin: 0; font-size: 1.25rem; }
+        nav h1 a { color: white; text-decoration: none; }
         nav a { color: white; text-decoration: none; font-size: 0.875rem; }
         nav a:hover { text-decoration: underline; }
         .nav-right { display: flex; align-items: center; gap: 1rem; }
@@ -20,28 +21,92 @@
         .user-menu-dropdown a { display: block; padding: 0.6rem 1rem; color: #111827; font-size: 0.875rem; text-decoration: none; }
         .user-menu-dropdown a:hover { background: #f3f4f6; }
         .user-menu-dropdown hr { margin: 0; border: none; border-top: 1px solid #e5e7eb; }
-        main { padding: 2rem; max-width: 900px; margin: 0 auto; }
-        .coming-soon { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 4rem; text-align: center; font-size: 1.5rem; font-weight: 700; color: #1e40af; letter-spacing: 0.1em; }
+        .login-btn { background: white; color: #2563eb; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; text-decoration: none; }
+        .login-btn:hover { background: #dbeafe; text-decoration: none; }
+        main { padding: 2rem; max-width: 800px; margin: 0 auto; }
+        h2 { font-size: 1.5rem; color: #111827; margin-bottom: 1.5rem; }
+        .empty-cart { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 3rem; text-align: center; color: #6b7280; }
+        .empty-cart a { color: #2563eb; }
+        .cart-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+        .cart-table th { text-align: left; padding: 0.875rem 1rem; font-size: 0.8rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #e5e7eb; background: #f9fafb; }
+        .cart-table td { padding: 1rem; border-bottom: 1px solid #e5e7eb; font-size: 0.95rem; color: #111827; vertical-align: middle; }
+        .cart-table tr:last-child td { border-bottom: none; }
+        .item-title { font-weight: 600; }
+        .item-price { color: #6b7280; }
+        .item-total { font-weight: 700; color: #2563eb; }
+        .remove-btn { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.875rem; padding: 0.25rem 0.5rem; border-radius: 4px; }
+        .remove-btn:hover { background: #fee2e2; }
+        .cart-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; }
+        .cart-total { font-size: 1.25rem; font-weight: 700; color: #111827; }
+        .cart-total span { color: #2563eb; }
+        .checkout-btn { background: #2563eb; color: white; border: none; padding: 0.75rem 2rem; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+        .checkout-btn:hover { background: #1d4ed8; }
+        .continue-link { color: #2563eb; font-size: 0.875rem; text-decoration: none; }
+        .continue-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
 <nav>
-    <h1><a href="/" style="color:white;text-decoration:none;">Fakestore</a></h1>
+    <h1><a href="/">Fakestore</a></h1>
     <div class="nav-right">
         <a href="/cart" class="cart-btn">Cart</a>
-        <details class="user-menu">
-            <summary th:text="${username}"></summary>
-            <div class="user-menu-dropdown">
-                <a href="/me">My Account</a>
-                <a href="/orders">My Orders</a>
-                <hr>
-                <a href="/logout">Sign out</a>
-            </div>
-        </details>
+        <div th:if="${username != null}">
+            <details class="user-menu">
+                <summary th:text="${username}"></summary>
+                <div class="user-menu-dropdown">
+                    <a href="/me">My Account</a>
+                    <hr>
+                    <a href="/logout">Sign out</a>
+                </div>
+            </details>
+        </div>
+        <div th:if="${username == null}">
+            <a href="/login" class="login-btn">Sign in</a>
+        </div>
     </div>
 </nav>
 <main>
-    <div class="coming-soon">COMING SOON</div>
+    <h2>Your Cart</h2>
+
+    <div th:if="${#lists.isEmpty(cart)}" class="empty-cart">
+        <p>Your cart is empty.</p>
+        <a href="/">Continue shopping</a>
+    </div>
+
+    <div th:if="${!#lists.isEmpty(cart)}">
+        <table class="cart-table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Price</th>
+                    <th>Qty</th>
+                    <th>Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="item : ${cart}">
+                    <td class="item-title" th:text="${item.title}"></td>
+                    <td class="item-price" th:text="'$' + ${item.price}"></td>
+                    <td th:text="${item.quantity}"></td>
+                    <td class="item-total" th:text="'$' + ${#numbers.formatDecimal(item.price.multiply(new java.math.BigDecimal(item.quantity)), 1, 2)}"></td>
+                    <td>
+                        <form method="post" th:action="@{/cart/remove/{id}(id=${item.productId})}">
+                            <button type="submit" class="remove-btn">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="cart-footer">
+            <a href="/" class="continue-link">← Continue shopping</a>
+            <div style="display:flex;align-items:center;gap:2rem;">
+                <div class="cart-total">Total: <span th:text="'$' + ${#numbers.formatDecimal(total, 1, 2)}"></span></div>
+                <a href="/checkout" class="checkout-btn">Checkout</a>
+            </div>
+        </div>
+    </div>
 </main>
 </body>
 </html>

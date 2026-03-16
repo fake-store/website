@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Fakestore - My Orders</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
+        nav { background: #2563eb; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        nav h1 { margin: 0; font-size: 1.25rem; }
+        nav h1 a { color: white; text-decoration: none; }
+        nav a { color: white; text-decoration: none; font-size: 0.875rem; }
+        nav a:hover { text-decoration: underline; }
+        .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .cart-btn { background: white; color: #2563eb; border: none; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .cart-btn:hover { background: #dbeafe; }
+        .user-menu { position: relative; }
+        .user-menu summary { list-style: none; cursor: pointer; font-size: 0.875rem; color: white; }
+        .user-menu summary::-webkit-details-marker { display: none; }
+        .user-menu summary::after { content: " ▾"; }
+        .user-menu-dropdown { position: absolute; right: 0; top: 100%; margin-top: 0.4rem; background: white; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); min-width: 150px; z-index: 100; overflow: hidden; }
+        .user-menu-dropdown a { display: block; padding: 0.6rem 1rem; color: #111827; font-size: 0.875rem; text-decoration: none; }
+        .user-menu-dropdown a:hover { background: #f3f4f6; }
+        .user-menu-dropdown hr { margin: 0; border: none; border-top: 1px solid #e5e7eb; }
+        main { padding: 2rem; max-width: 900px; margin: 0 auto; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        h2 { margin: 0; font-size: 1.5rem; color: #111827; }
+        .back-link { color: #6b7280; font-size: 0.875rem; text-decoration: none; }
+        .back-link:hover { color: #2563eb; }
+        .unavailable { color: #9ca3af; font-style: italic; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .empty { color: #6b7280; background: white; padding: 3rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }
+        .orders-grid { display: grid; gap: 0.75rem; }
+        .order-card { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.25rem 1.5rem; display: grid; grid-template-columns: 1fr auto auto auto; gap: 1rem; align-items: center; text-decoration: none; color: inherit; border: 1px solid transparent; }
+        .order-card:hover { border-color: #93c5fd; background: #f0f7ff; }
+        .order-date { font-size: 0.8rem; color: #6b7280; }
+        .order-id { font-family: monospace; font-size: 0.9rem; color: #374151; font-weight: 600; }
+        .order-amount { font-size: 1rem; font-weight: 700; color: #111827; text-align: right; }
+        .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .badge-paid { background: #dcfce7; color: #15803d; }
+        .badge-rejected { background: #fee2e2; color: #b91c1c; }
+        .badge-pending { background: #fef9c3; color: #854d0e; }
+    </style>
+</head>
+<body>
+<nav>
+    <h1><a href="/">Fakestore</a></h1>
+    <div class="nav-right">
+        <a href="/cart" class="cart-btn">Cart</a>
+        <details class="user-menu">
+            <summary th:text="${username}"></summary>
+            <div class="user-menu-dropdown">
+                <a href="/me">My Account</a>
+                <a href="/me/orders">My Orders</a>
+                <hr>
+                <a href="/logout">Sign out</a>
+            </div>
+        </details>
+    </div>
+</nav>
+<main>
+    <div class="page-header">
+        <h2>My Orders</h2>
+        <a href="/me" class="back-link">← My Account</a>
+    </div>
+
+    <div th:if="${orders == null}" class="unavailable">Orders service unavailable.</div>
+    <div th:if="${orders != null and #lists.isEmpty(orders)}" class="empty">
+        <p style="margin:0 0 0.5rem;">No orders yet.</p>
+        <a href="/" style="color:#2563eb;font-size:0.875rem;">Start shopping →</a>
+    </div>
+
+    <div th:if="${orders != null and !#lists.isEmpty(orders)}" class="orders-grid">
+        <a th:each="o : ${orders}"
+           th:href="@{/me/orders/{id}(id=${o.id})}"
+           class="order-card">
+            <div>
+                <div class="order-id" th:text="${#strings.substring(o.id.toString(), 0, 8) + '…'}"></div>
+                <div class="order-date" th:text="${#temporals.format(o.createdAt, 'MMM d, yyyy  h:mm a')}"></div>
+            </div>
+            <div></div>
+            <div class="order-amount" th:text="'$' + ${#numbers.formatDecimal(o.amount, 1, 2)}"></div>
+            <div>
+                <span th:class="${'badge ' + (o.status == 'PAID' ? 'badge-paid' : (o.status == 'REJECTED' ? 'badge-rejected' : 'badge-pending'))}"
+                      th:text="${o.status}"></span>
+            </div>
+        </a>
+    </div>
+</main>
+</body>
+</html>

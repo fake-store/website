@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Fakestore - Order Detail</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
+        nav { background: #2563eb; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        nav h1 { margin: 0; font-size: 1.25rem; }
+        nav h1 a { color: white; text-decoration: none; }
+        nav a { color: white; text-decoration: none; font-size: 0.875rem; }
+        nav a:hover { text-decoration: underline; }
+        .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .cart-btn { background: white; color: #2563eb; border: none; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .cart-btn:hover { background: #dbeafe; }
+        .user-menu { position: relative; }
+        .user-menu summary { list-style: none; cursor: pointer; font-size: 0.875rem; color: white; }
+        .user-menu summary::-webkit-details-marker { display: none; }
+        .user-menu summary::after { content: " ▾"; }
+        .user-menu-dropdown { position: absolute; right: 0; top: 100%; margin-top: 0.4rem; background: white; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); min-width: 150px; z-index: 100; overflow: hidden; }
+        .user-menu-dropdown a { display: block; padding: 0.6rem 1rem; color: #111827; font-size: 0.875rem; text-decoration: none; }
+        .user-menu-dropdown a:hover { background: #f3f4f6; }
+        .user-menu-dropdown hr { margin: 0; border: none; border-top: 1px solid #e5e7eb; }
+        main { padding: 2rem; max-width: 640px; margin: 0 auto; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        h2 { margin: 0; font-size: 1.5rem; color: #111827; }
+        .back-link { color: #6b7280; font-size: 0.875rem; text-decoration: none; }
+        .back-link:hover { color: #2563eb; }
+
+        /* Order info card */
+        .order-info { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1rem; }
+        .order-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1.5rem; margin-top: 0.75rem; }
+        .info-field { font-size: 0.875rem; }
+        .info-label { color: #9ca3af; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.2rem; }
+        .info-value { color: #111827; font-weight: 600; }
+        .info-value.mono { font-family: monospace; font-size: 0.8rem; word-break: break-all; }
+        .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .badge-paid { background: #dcfce7; color: #15803d; }
+        .badge-rejected { background: #fee2e2; color: #b91c1c; }
+        .badge-pending { background: #fef9c3; color: #854d0e; }
+
+        /* Status boxes */
+        .status-box { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1.25rem 1.5rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 1.25rem; }
+        .section-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; margin-bottom: 0.25rem; }
+        .status-value { font-size: 1rem; font-weight: 600; color: #111827; }
+        .status-sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.2rem; }
+        .status-icon { font-size: 1.75rem; width: 2.25rem; text-align: center; flex-shrink: 0; }
+        .shipping-waiting { opacity: 0.45; }
+
+        /* Spinner */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { width: 2rem; height: 2rem; border: 3px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+<nav>
+    <h1><a href="/">Fakestore</a></h1>
+    <div class="nav-right">
+        <a href="/cart" class="cart-btn">Cart</a>
+        <details class="user-menu">
+            <summary th:text="${username}"></summary>
+            <div class="user-menu-dropdown">
+                <a href="/me">My Account</a>
+                <a href="/me/orders">My Orders</a>
+                <hr>
+                <a href="/logout">Sign out</a>
+            </div>
+        </details>
+    </div>
+</nav>
+<main>
+    <div class="page-header">
+        <h2>Order Detail</h2>
+        <a href="/me/orders" class="back-link">← My Orders</a>
+    </div>
+
+    <!-- Order info -->
+    <div class="order-info">
+        <div th:if="${order == null}" style="color:#9ca3af;font-style:italic;">Order info unavailable.</div>
+        <div th:if="${order != null}">
+            <div class="order-info-grid">
+                <div class="info-field">
+                    <div class="info-label">Order ID</div>
+                    <div class="info-value mono" th:text="${order.id}"></div>
+                </div>
+                <div class="info-field">
+                    <div class="info-label">Date Placed</div>
+                    <div class="info-value" th:text="${#temporals.format(order.createdAt, 'MMM d, yyyy  h:mm a')}"></div>
+                </div>
+                <div class="info-field">
+                    <div class="info-label">Total</div>
+                    <div class="info-value" th:text="'$' + ${#numbers.formatDecimal(order.amount, 1, 2)}"></div>
+                </div>
+                <div class="info-field">
+                    <div class="info-label">Status</div>
+                    <div>
+                        <span id="order-badge"
+                              th:class="${'badge ' + (order.status == 'PAID' ? 'badge-paid' : (order.status == 'REJECTED' ? 'badge-rejected' : 'badge-pending'))}"
+                              th:text="${order.status}"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment status box -->
+    <div class="status-box" id="payment-box">
+        <div class="spinner" id="payment-spinner" th:if="${order == null or order.status == 'CREATED'}"></div>
+        <div class="status-icon" id="payment-icon"
+             th:style="${order != null and order.status != 'CREATED'} ? '' : 'display:none'"
+             th:text="${order != null and order.status == 'PAID'} ? '✓' : (order != null and order.status == 'REJECTED' ? '✗' : '')"></div>
+        <div>
+            <div class="section-label">Payment</div>
+            <div class="status-value" id="payment-value"
+                 th:text="${order == null or order.status == 'CREATED'} ? 'Processing payment…' : (order.status == 'PAID' ? 'Payment accepted' : 'Payment rejected')"></div>
+            <div class="status-sub" id="payment-sub"
+                 th:text="${order != null and order.status == 'REJECTED'} ? 'Your payment method was declined.' : ''"></div>
+        </div>
+    </div>
+
+    <!-- Shipping status box -->
+    <div id="shipping-box"
+         th:class="${'status-box ' + (order != null and order.status == 'PAID' ? '' : 'shipping-waiting')}">
+        <div class="status-icon" id="shipping-icon"
+             th:text="${order != null and order.status == 'PAID'} ? '✓' : '⏳'"></div>
+        <div>
+            <div class="section-label">Shipping</div>
+            <div class="status-value" id="shipping-value"
+                 th:text="${order != null and order.status == 'PAID'} ? 'Shipping authorized' : 'Awaiting payment'"></div>
+            <div class="status-sub" id="shipping-sub"
+                 th:text="${order != null and order.status == 'PAID'} ? 'Your order is on its way!' : ''"></div>
+        </div>
+    </div>
+</main>
+
+<script th:inline="javascript">
+    const orderId   = [[${orderId}]];
+    const initStatus = /*[[${order != null ? order.status : 'CREATED'}]]*/ 'CREATED';
+    const TERMINAL  = ['PAID', 'REJECTED'];
+    const POLL_MS   = 2000;
+
+    // If already in a terminal state on page load, no need to poll
+    if (TERMINAL.includes(initStatus)) {
+        // page rendered with final state already — nothing to do
+    } else {
+        const timer = setInterval(poll, POLL_MS);
+
+        async function poll() {
+            try {
+                const res = await fetch(`/me/orders/${orderId}/status`);
+                if (!res.ok) return;
+                const { status } = await res.json();
+                if (TERMINAL.includes(status)) {
+                    clearInterval(timer);
+                    applyStatus(status);
+                }
+            } catch (_) { /* network hiccup, keep polling */ }
+        }
+    }
+
+    function applyStatus(status) {
+        // Payment box
+        document.getElementById('payment-spinner').style.display = 'none';
+        const icon = document.getElementById('payment-icon');
+        icon.style.display = 'block';
+        const badge = document.getElementById('order-badge');
+
+        if (status === 'PAID') {
+            icon.textContent = '✓'; icon.style.color = '#16a34a';
+            document.getElementById('payment-value').textContent = 'Payment accepted';
+            document.getElementById('payment-value').style.color = '#16a34a';
+            badge.textContent = 'PAID';
+            badge.className = 'badge badge-paid';
+
+            // Shipping box
+            const sb = document.getElementById('shipping-box');
+            sb.classList.remove('shipping-waiting');
+            document.getElementById('shipping-icon').textContent = '✓';
+            document.getElementById('shipping-value').textContent = 'Shipping authorized';
+            document.getElementById('shipping-sub').textContent  = 'Your order is on its way!';
+        } else if (status === 'REJECTED') {
+            icon.textContent = '✗'; icon.style.color = '#dc2626';
+            document.getElementById('payment-value').textContent = 'Payment rejected';
+            document.getElementById('payment-value').style.color = '#dc2626';
+            document.getElementById('payment-sub').textContent = 'Your payment method was declined.';
+            badge.textContent = 'REJECTED';
+            badge.className = 'badge badge-rejected';
+        }
+    }
+</script>
+</body>
+</html>
