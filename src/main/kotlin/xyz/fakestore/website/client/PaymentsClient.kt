@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
+import java.math.BigDecimal
+import java.time.Instant
 import java.util.UUID
 
 data class PaymentMethod(
@@ -18,6 +20,14 @@ data class PaymentMethod(
 
 data class AddPaymentMethodRequest(val type: String, val label: String)
 data class UpdatePaymentMethodRequest(val label: String, val isDefault: Boolean)
+data class PaymentHistoryItem(
+    val userPaymentRequestId: UUID,
+    val orderId: UUID,
+    val userPaymentMethodId: UUID,
+    val amount: BigDecimal,
+    val currency: String,
+    val createdAt: Instant
+)
 
 @Component
 class PaymentsClient(@Value("\${services.payments.url}") baseUrl: String) {
@@ -66,4 +76,14 @@ class PaymentsClient(@Value("\${services.payments.url}") baseUrl: String) {
             .block()
         true
     }.getOrDefault(false)
+
+    fun getHistory(token: String): List<PaymentHistoryItem>? = runCatching {
+        webClient.get()
+            .uri("/api/payments/history")
+            .header("Authorization", "Bearer $token")
+            .let { spec -> MDC.get("traceId")?.let { spec.header("X-Trace-Id", it) } ?: spec }
+            .retrieve()
+            .bodyToMono<List<PaymentHistoryItem>>()
+            .block()
+    }.getOrNull()
 }

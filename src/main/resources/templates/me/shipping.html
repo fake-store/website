@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Fakestore - Shipping Addresses</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
+        nav { background: #2563eb; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        nav h1 { margin: 0; font-size: 1.25rem; }
+        nav a { color: white; text-decoration: none; font-size: 0.875rem; }
+        nav a:hover { text-decoration: underline; }
+        .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .cart-btn { background: white; color: #2563eb; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; text-decoration: none; }
+        .cart-btn:hover { background: #dbeafe; }
+        .user-menu { position: relative; }
+        .user-menu summary { list-style: none; cursor: pointer; font-size: 0.875rem; color: white; }
+        .user-menu summary::-webkit-details-marker { display: none; }
+        .user-menu summary::after { content: " ▾"; }
+        .user-menu-dropdown { position: absolute; right: 0; top: 100%; margin-top: 0.4rem; background: white; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); min-width: 150px; z-index: 100; overflow: hidden; }
+        .user-menu-dropdown a { display: block; padding: 0.6rem 1rem; color: #111827; font-size: 0.875rem; text-decoration: none; }
+        .user-menu-dropdown a:hover { background: #f3f4f6; }
+        .user-menu-dropdown hr { margin: 0; border: none; border-top: 1px solid #e5e7eb; }
+        main { padding: 2rem; max-width: 900px; margin: 0 auto; display: grid; gap: 1.5rem; }
+        .card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .card h2 { margin-top: 0; font-size: 1.1rem; color: #1e40af; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+        .unavailable { color: #9ca3af; font-style: italic; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        th { text-align: left; padding: 0.4rem 0.75rem; background: #f3f4f6; color: #374151; font-weight: 600; }
+        td { padding: 0.4rem 0.75rem; border-top: 1px solid #e5e7eb; vertical-align: middle; }
+        .success { color: #15803d; background: #dcfce7; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 0.75rem; font-size: 0.875rem; }
+        .error-msg { color: #b91c1c; background: #fee2e2; padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 0.75rem; font-size: 0.875rem; }
+        .btn-sm { background: #2563eb; color: white; border: none; padding: 0.25rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .btn-sm:hover { background: #1d4ed8; }
+        .btn-danger { background: #dc2626; color: white; border: none; padding: 0.25rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-link { background: none; border: none; color: #2563eb; cursor: pointer; font-size: 0.875rem; padding: 0; text-decoration: underline; }
+        details summary { cursor: pointer; list-style: none; }
+        details summary::-webkit-details-marker { display: none; }
+        details[open] summary { margin-bottom: 0.5rem; }
+        .inline-form { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-top: 0.4rem; }
+        .inline-form input { padding: 0.25rem 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.875rem; }
+        .back-link { font-size: 0.875rem; color: #6b7280; }
+    </style>
+</head>
+<body>
+<nav>
+    <h1><a href="/" style="color:white;text-decoration:none;">Fakestore</a></h1>
+    <div class="nav-right">
+        <a href="/cart" class="cart-btn" th:text="${cartCount > 0 ? 'Cart (' + cartCount + ')' : 'Cart'}">Cart</a>
+        <details class="user-menu">
+            <summary th:text="${username}"></summary>
+            <div class="user-menu-dropdown">
+                <a href="/me">My Account</a>
+                <a href="/me/orders">My Orders</a>
+                <hr>
+                <a href="/logout">Sign out</a>
+            </div>
+        </details>
+    </div>
+</nav>
+<main>
+    <a href="/me" class="back-link">← My Account</a>
+
+    <div class="card">
+        <h2>Shipping Addresses</h2>
+        <div th:if="${successShipping}" class="success" th:text="${successShipping}"></div>
+        <div th:if="${errorShipping}" class="error-msg" th:text="${errorShipping}"></div>
+        <div th:if="${shippingAddresses == null}" class="unavailable">Shipping service unavailable.</div>
+        <div th:if="${shippingAddresses != null}">
+            <div th:if="${#lists.isEmpty(shippingAddresses)}" class="unavailable">No shipping addresses on file.</div>
+            <table th:if="${!#lists.isEmpty(shippingAddresses)}">
+                <thead>
+                    <tr><th>Label</th><th>Address</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="a : ${shippingAddresses}">
+                        <td th:text="${a.label}"></td>
+                        <td th:text="${a.street + ', ' + a.city + ', ' + a.state + ' ' + a.postalCode + ', ' + a.country}"></td>
+                        <td>
+                            <details>
+                                <summary><button type="button" class="btn-sm">Edit</button></summary>
+                                <form method="post" th:action="@{/me/shipping/{id}/update(id=${a.id})}" style="margin-top:0.4rem;">
+                                    <div class="inline-form">
+                                        <input type="text" name="label" th:value="${a.label}" placeholder="Label" required>
+                                        <input type="text" name="street" th:value="${a.street}" placeholder="Street" required>
+                                        <input type="text" name="city" th:value="${a.city}" placeholder="City" required>
+                                        <input type="text" name="state" th:value="${a.state}" placeholder="State" required>
+                                        <input type="text" name="postalCode" th:value="${a.postalCode}" placeholder="Postal code" required>
+                                        <input type="text" name="country" th:value="${a.country}" placeholder="Country" required>
+                                        <button type="submit" class="btn-sm">Save</button>
+                                    </div>
+                                </form>
+                            </details>
+                            <form method="post" th:action="@{/me/shipping/{id}/delete(id=${a.id})}" style="display:inline;"
+                                  onsubmit="return confirm('Remove this address?')">
+                                <button type="submit" class="btn-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div style="margin-top: 1rem;">
+                <details>
+                    <summary><button type="button" class="btn-link">+ Add shipping address</button></summary>
+                    <form method="post" th:action="@{/me/shipping/add}" style="margin-top: 0.5rem;">
+                        <div class="inline-form">
+                            <input type="text" name="label" placeholder="Label (e.g. Home)" required>
+                            <input type="text" name="street" placeholder="Street" required>
+                            <input type="text" name="city" placeholder="City" required>
+                            <input type="text" name="state" placeholder="State" required>
+                            <input type="text" name="postalCode" placeholder="Postal code" required>
+                            <input type="text" name="country" placeholder="Country" required>
+                            <button type="submit" class="btn-sm">Add</button>
+                        </div>
+                    </form>
+                </details>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

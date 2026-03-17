@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Fakestore - Cart</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
+        nav { background: #2563eb; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        nav h1 { margin: 0; font-size: 1.25rem; }
+        nav a { color: white; text-decoration: none; font-size: 0.875rem; }
+        nav a:hover { text-decoration: underline; }
+        .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .cart-btn { background: white; color: #2563eb; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; text-decoration: none; }
+        .cart-btn:hover { background: #dbeafe; }
+        .user-menu { position: relative; }
+        .user-menu summary { list-style: none; cursor: pointer; font-size: 0.875rem; color: white; }
+        .user-menu summary::-webkit-details-marker { display: none; }
+        .user-menu summary::after { content: " ▾"; }
+        .user-menu-dropdown { position: absolute; right: 0; top: 100%; margin-top: 0.4rem; background: white; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); min-width: 150px; z-index: 100; overflow: hidden; }
+        .user-menu-dropdown a { display: block; padding: 0.6rem 1rem; color: #111827; font-size: 0.875rem; text-decoration: none; }
+        .user-menu-dropdown a:hover { background: #f3f4f6; }
+        .user-menu-dropdown hr { margin: 0; border: none; border-top: 1px solid #e5e7eb; }
+        .login-btn { background: white; color: #2563eb; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; text-decoration: none; }
+        .login-btn:hover { background: #dbeafe; }
+        main { padding: 2rem; max-width: 900px; margin: 0 auto; display: grid; gap: 1.5rem; }
+        .card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .card h2 { margin-top: 0; font-size: 1.1rem; color: #1e40af; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+        .empty { color: #6b7280; font-style: italic; padding: 1rem 0; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th { text-align: left; padding: 0.5rem 0.75rem; background: #f3f4f6; color: #374151; font-weight: 600; }
+        td { padding: 0.5rem 0.75rem; border-top: 1px solid #e5e7eb; vertical-align: middle; }
+        .remove-btn { background: none; border: none; color: #dc2626; cursor: pointer; font-size: 0.8rem; text-decoration: underline; padding: 0; }
+        .remove-btn:hover { color: #b91c1c; }
+        .total-row td { font-weight: 700; font-size: 1rem; border-top: 2px solid #e5e7eb; }
+        .checkout-form { display: grid; gap: 1rem; margin-top: 1rem; }
+        .form-row { display: grid; gap: 0.4rem; }
+        .form-row label { font-size: 0.875rem; font-weight: 600; color: #374151; }
+        .form-row select { padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; }
+        .place-order-btn { background: #16a34a; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .place-order-btn:hover { background: #15803d; }
+        .place-order-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+        .login-prompt { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 1rem 1.25rem; }
+        .login-prompt p { margin: 0 0 0.5rem; font-size: 0.9rem; color: #1e40af; }
+        .login-prompt a { color: #2563eb; font-weight: 600; }
+        .success { color: #15803d; background: #dcfce7; padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.875rem; }
+        .error-msg { color: #b91c1c; background: #fee2e2; padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.875rem; }
+        .unavailable { color: #9ca3af; font-style: italic; font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+<nav>
+    <h1><a href="/" style="color:white;text-decoration:none;">Fakestore</a></h1>
+    <div class="nav-right">
+        <a href="/cart" class="cart-btn" th:text="${cartCount > 0 ? 'Cart (' + cartCount + ')' : 'Cart'}">Cart</a>
+        <div th:if="${loggedIn}">
+            <details class="user-menu">
+                <summary th:text="${username}"></summary>
+                <div class="user-menu-dropdown">
+                    <a href="/me">My Account</a>
+                    <a href="/me/orders">My Orders</a>
+                    <hr>
+                    <a href="/logout">Sign out</a>
+                </div>
+            </details>
+        </div>
+        <div th:if="${!loggedIn}">
+            <a href="/login" class="login-btn">Sign in</a>
+        </div>
+    </div>
+</nav>
+<main>
+    <div th:if="${success}" class="success" th:text="${success}"></div>
+    <div th:if="${error}" class="error-msg" th:text="${error}"></div>
+
+    <!-- Cart items -->
+    <div class="card">
+        <h2>Your Cart</h2>
+        <div th:if="${#lists.isEmpty(items)}" class="empty">Your cart is empty. <a href="/">Continue shopping</a></div>
+        <div th:if="${!#lists.isEmpty(items)}">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Price</th>
+                        <th>Qty</th>
+                        <th>Subtotal</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="item : ${items}">
+                        <td th:text="${item.title}"></td>
+                        <td th:text="'$' + ${item.price}"></td>
+                        <td th:text="${item.quantity}"></td>
+                        <td th:text="'$' + ${#numbers.formatDecimal(item.price * item.quantity, 1, 2)}"></td>
+                        <td>
+                            <form method="post" th:action="@{/cart/remove}" style="display:inline;">
+                                <input type="hidden" name="productId" th:value="${item.productId}">
+                                <button type="submit" class="remove-btn">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="3">Total</td>
+                        <td th:text="'$' + ${#numbers.formatDecimal(total, 1, 2)}"></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Checkout (logged-in users only) -->
+    <div th:if="${!#lists.isEmpty(items)}" class="card">
+        <h2>Checkout</h2>
+
+        <div th:if="${loggedIn}">
+            <div th:if="${paymentMethods == null or shippingAddresses == null}" class="unavailable">
+                Unable to load payment methods or shipping addresses. Please try again.
+            </div>
+            <div th:if="${paymentMethods != null and shippingAddresses != null}">
+                <div th:if="${#lists.isEmpty(paymentMethods) or #lists.isEmpty(shippingAddresses)}" class="unavailable">
+                    You need at least one <a href="/me">payment method and shipping address</a> to place an order.
+                </div>
+                <div th:if="${!#lists.isEmpty(paymentMethods) and !#lists.isEmpty(shippingAddresses)}">
+                    <form method="post" th:action="@{/cart/place-order}" class="checkout-form">
+                        <div class="form-row">
+                            <label for="paymentMethodId">Payment method</label>
+                            <select id="paymentMethodId" name="paymentMethodId" required>
+                                <option th:each="pm : ${paymentMethods}"
+                                        th:value="${pm.userPaymentMethodId}"
+                                        th:text="${pm.label + ' (' + pm.type + ')'}">
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="shippingAddressId">Shipping address</label>
+                            <select id="shippingAddressId" name="shippingAddressId" required>
+                                <option th:each="addr : ${shippingAddresses}"
+                                        th:value="${addr.id}"
+                                        th:text="${addr.label + ' – ' + addr.street + ', ' + addr.city}">
+                                </option>
+                            </select>
+                        </div>
+                        <div>
+                            <button type="submit" class="place-order-btn">Place Order</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${!loggedIn}" class="login-prompt">
+            <p>You must be signed in to place an order.</p>
+            <a href="/login">Sign in to continue</a>
+        </div>
+    </div>
+</main>
+</body>
+</html>

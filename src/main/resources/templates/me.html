@@ -9,6 +9,17 @@
         nav h1 { margin: 0; font-size: 1.25rem; }
         nav a { color: white; text-decoration: none; font-size: 0.875rem; }
         nav a:hover { text-decoration: underline; }
+        .nav-right { display: flex; align-items: center; gap: 1rem; }
+        .cart-btn { background: white; color: #2563eb; border: none; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .cart-btn:hover { background: #dbeafe; }
+        .user-menu { position: relative; }
+        .user-menu summary { list-style: none; cursor: pointer; font-size: 0.875rem; color: white; }
+        .user-menu summary::-webkit-details-marker { display: none; }
+        .user-menu summary::after { content: " ▾"; }
+        .user-menu-dropdown { position: absolute; right: 0; top: 100%; margin-top: 0.4rem; background: white; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); min-width: 150px; z-index: 100; overflow: hidden; }
+        .user-menu-dropdown a { display: block; padding: 0.6rem 1rem; color: #111827; font-size: 0.875rem; text-decoration: none; }
+        .user-menu-dropdown a:hover { background: #f3f4f6; }
+        .user-menu-dropdown hr { margin: 0; border: none; border-top: 1px solid #e5e7eb; }
         main { padding: 2rem; max-width: 900px; margin: 0 auto; display: grid; gap: 1.5rem; }
         .card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .card h2 { margin-top: 0; font-size: 1.1rem; color: #1e40af; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; }
@@ -32,14 +43,27 @@
         .inline-form { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-top: 0.4rem; }
         .inline-form input, .inline-form select { padding: 0.25rem 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.875rem; }
         label.check-label { font-size: 0.875rem; display: flex; align-items: center; gap: 0.3rem; }
+        .section-links { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.25rem; }
+        .section-link { display: block; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; color: inherit; }
+        .section-link:hover { border-color: #2563eb; background: #eff6ff; }
+        .section-link-title { font-weight: 600; color: #1e40af; margin-bottom: 0.25rem; }
+        .section-link-desc { font-size: 0.8rem; color: #6b7280; }
     </style>
 </head>
 <body>
 <nav>
-    <h1>Fakestore</h1>
-    <div>
-        <span th:text="${user.username}" style="margin-right: 1rem;"></span>
-        <a href="/logout">Sign out</a>
+    <h1><a href="/" style="color:white;text-decoration:none;">Fakestore</a></h1>
+    <div class="nav-right">
+        <a href="/cart" class="cart-btn" th:text="${cartCount > 0 ? 'Cart (' + cartCount + ')' : 'Cart'}">Cart</a>
+        <details class="user-menu">
+            <summary th:text="${user.username}"></summary>
+            <div class="user-menu-dropdown">
+                <a href="/me">My Account</a>
+                <a href="/me/orders">My Orders</a>
+                <hr>
+                <a href="/logout">Sign out</a>
+            </div>
+        </details>
     </div>
 </nav>
 <main>
@@ -55,7 +79,7 @@
         <div style="margin-top: 0.75rem;">
             <details>
                 <summary><button type="button" class="btn-link">Change email</button></summary>
-                <form method="post" action="/me/update-email" th:action="@{/me/update-email}">
+                <form method="post" th:action="@{/me/update-email}">
                     <div class="inline-form">
                         <input type="email" name="email" th:placeholder="${user.email}" required>
                         <button type="submit" class="btn-sm">Update</button>
@@ -65,141 +89,59 @@
         </div>
     </div>
 
-    <!-- Payments card -->
+    <!-- Recent Orders card -->
     <div class="card">
-        <h2>Payment Methods</h2>
-        <div th:if="${successPayments}" class="success" th:text="${successPayments}"></div>
-        <div th:if="${errorPayments}" class="error-msg" th:text="${errorPayments}"></div>
-        <div th:if="${paymentMethods == null}" class="unavailable">Payments service unavailable</div>
-        <div th:if="${paymentMethods != null}">
-            <div th:if="${#lists.isEmpty(paymentMethods)}" class="unavailable">No payment methods on file</div>
-            <table th:if="${!#lists.isEmpty(paymentMethods)}">
+        <h2>Recent Orders <a href="/me/orders" style="font-size:0.8rem;font-weight:400;color:#2563eb;margin-left:0.5rem;">View all</a></h2>
+        <div th:if="${recentOrders == null or #lists.isEmpty(recentOrders)}" class="unavailable">No orders yet.</div>
+        <table th:if="${recentOrders != null and !#lists.isEmpty(recentOrders)}">
+            <thead>
+                <tr><th>Order</th><th>Date</th><th>Amount</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+                <tr th:each="o : ${recentOrders}">
+                    <td><a th:href="@{/me/orders/{id}(id=${o.id})}" th:text="${#strings.substring(o.id.toString(), 0, 8) + '…'}" style="font-family:monospace;color:#2563eb;"></a></td>
+                    <td th:text="${#temporals.format(o.createdAt, 'yyyy-MM-dd')}"></td>
+                    <td th:text="'$' + ${#numbers.formatDecimal(o.amount, 1, 2)}"></td>
+                    <td><span class="badge" th:text="${o.status}"></span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Recent Payments card -->
+    <div class="card">
+        <h2>Recent Payments <a href="/payments" style="font-size:0.8rem;font-weight:400;color:#2563eb;margin-left:0.5rem;">View all</a></h2>
+        <div th:if="${recentPayments == null}" class="unavailable">Payments service unavailable.</div>
+        <div th:if="${recentPayments != null}">
+            <div th:if="${#lists.isEmpty(recentPayments)}" class="unavailable">No payment history.</div>
+            <table th:if="${!#lists.isEmpty(recentPayments)}">
                 <thead>
-                    <tr>
-                        <th>Type</th>
-                        <th>Label</th>
-                        <th>Default</th>
-                        <th>Actions</th>
-                    </tr>
+                    <tr><th>Date</th><th>Order</th><th>Amount</th><th>Currency</th></tr>
                 </thead>
                 <tbody>
-                    <tr th:each="m : ${paymentMethods}">
-                        <td th:text="${m.type}"></td>
-                        <td th:text="${m.label}"></td>
-                        <td><span th:if="${m.isDefault}" class="badge">Default</span></td>
-                        <td>
-                            <details>
-                                <summary><button type="button" class="btn-sm">Edit</button></summary>
-                                <form method="post" th:action="@{/me/payments/{id}/update(id=${m.userPaymentMethodId})}">
-                                    <div class="inline-form">
-                                        <input type="text" name="label" th:value="${m.label}" required>
-                                        <label class="check-label">
-                                            <input type="checkbox" name="isDefault" value="true" th:checked="${m.isDefault}">
-                                            Default
-                                        </label>
-                                        <button type="submit" class="btn-sm">Save</button>
-                                    </div>
-                                </form>
-                            </details>
-                            <form method="post" th:action="@{/me/payments/{id}/delete(id=${m.userPaymentMethodId})}" style="display:inline;"
-                                  onsubmit="return confirm('Remove this payment method?')">
-                                <button type="submit" class="btn-danger">Remove</button>
-                            </form>
-                        </td>
+                    <tr th:each="p : ${recentPayments}">
+                        <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+                        <td><a th:href="@{/me/orders/{id}(id=${p.orderId})}" th:text="${#strings.substring(p.orderId.toString(), 0, 8) + '…'}" style="font-family:monospace;color:#2563eb;"></a></td>
+                        <td th:text="${p.amount}"></td>
+                        <td th:text="${p.currency}"></td>
                     </tr>
                 </tbody>
             </table>
-
-            <!-- Add payment method -->
-            <div style="margin-top: 1rem;">
-                <details>
-                    <summary><button type="button" class="btn-link">+ Add payment method</button></summary>
-                    <form method="post" th:action="@{/me/payments/add}" style="margin-top: 0.5rem;">
-                        <div class="inline-form">
-                            <select name="type" required>
-                                <option value="">— Select type —</option>
-                                <option th:each="t : ${paymentMethodTypes}" th:value="${t}" th:text="${t}"></option>
-                            </select>
-                            <input type="text" name="label" placeholder="Label" required>
-                            <button type="submit" class="btn-sm">Add</button>
-                        </div>
-                    </form>
-                </details>
-            </div>
         </div>
     </div>
 
-    <!-- Shipping Addresses card -->
+    <!-- Section links -->
     <div class="card">
-        <h2>Shipping Addresses</h2>
-        <div th:if="${successShipping}" class="success" th:text="${successShipping}"></div>
-        <div th:if="${errorShipping}" class="error-msg" th:text="${errorShipping}"></div>
-        <div th:if="${shippingAddresses == null}" class="unavailable">Shipping service unavailable</div>
-        <div th:if="${shippingAddresses != null}">
-            <div th:if="${#lists.isEmpty(shippingAddresses)}" class="unavailable">No shipping addresses on file</div>
-            <table th:if="${!#lists.isEmpty(shippingAddresses)}">
-                <thead>
-                    <tr>
-                        <th>Label</th>
-                        <th>Address</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="a : ${shippingAddresses}">
-                        <td th:text="${a.label}"></td>
-                        <td th:text="${a.street + ', ' + a.city + ', ' + a.state + ' ' + a.postalCode + ', ' + a.country}"></td>
-                        <td>
-                            <details>
-                                <summary><button type="button" class="btn-sm">Edit</button></summary>
-                                <form method="post" th:action="@{/me/shipping/{id}/update(id=${a.id})}" style="margin-top:0.4rem;">
-                                    <div class="inline-form">
-                                        <input type="text" name="label" th:value="${a.label}" placeholder="Label" required>
-                                        <input type="text" name="street" th:value="${a.street}" placeholder="Street" required>
-                                        <input type="text" name="city" th:value="${a.city}" placeholder="City" required>
-                                        <input type="text" name="state" th:value="${a.state}" placeholder="State" required>
-                                        <input type="text" name="postalCode" th:value="${a.postalCode}" placeholder="Postal code" required>
-                                        <input type="text" name="country" th:value="${a.country}" placeholder="Country" required>
-                                        <button type="submit" class="btn-sm">Save</button>
-                                    </div>
-                                </form>
-                            </details>
-                            <form method="post" th:action="@{/me/shipping/{id}/delete(id=${a.id})}" style="display:inline;"
-                                  onsubmit="return confirm('Remove this address?')">
-                                <button type="submit" class="btn-danger">Remove</button>
-                            </form>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <!-- Add address -->
-            <div style="margin-top: 1rem;">
-                <details>
-                    <summary><button type="button" class="btn-link">+ Add shipping address</button></summary>
-                    <form method="post" th:action="@{/me/shipping/add}" style="margin-top: 0.5rem;">
-                        <div class="inline-form">
-                            <input type="text" name="label" placeholder="Label (e.g. Home)" required>
-                            <input type="text" name="street" placeholder="Street" required>
-                            <input type="text" name="city" placeholder="City" required>
-                            <input type="text" name="state" placeholder="State" required>
-                            <input type="text" name="postalCode" placeholder="Postal code" required>
-                            <input type="text" name="country" placeholder="Country" required>
-                            <button type="submit" class="btn-sm">Add</button>
-                        </div>
-                    </form>
-                </details>
-            </div>
-        </div>
-    </div>
-
-    <!-- Orders card -->
-    <div class="card">
-        <h2>Orders</h2>
-        <div th:if="${orders == null}" class="unavailable">Orders service unavailable</div>
-        <div th:if="${orders != null}">
-            <div class="field" th:text="${orders.message}"></div>
-            <div class="field"><span>User ID:</span> <code th:text="${orders.userId}"></code></div>
+        <h2>Account Sections</h2>
+        <div class="section-links">
+            <a href="/me/payment-methods" class="section-link">
+                <div class="section-link-title">Payment Methods</div>
+                <div class="section-link-desc">Manage cards, bank accounts, and digital wallets</div>
+            </a>
+            <a href="/me/shipping" class="section-link">
+                <div class="section-link-title">Shipping Addresses</div>
+                <div class="section-link-desc">Manage delivery addresses</div>
+            </a>
         </div>
     </div>
 
