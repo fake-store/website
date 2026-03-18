@@ -2,7 +2,6 @@ package xyz.fakestore.website.web
 
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import jakarta.servlet.http.HttpSession
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
@@ -31,71 +30,71 @@ class WebController(
     private val shippingClient: ShippingClient,
     private val catalogClient: CatalogClient,
     private val cartClient: CartClient,
-    private val cookieCartService: CookieCartService
+    private val cookieCartService: CookieCartService,
+    private val jwtCookieService: JwtCookieService
 ) {
     private val log = LoggerFactory.getLogger(WebController::class.java)
 
     @GetMapping("/")
     fun home(
         @RequestParam(required = false) q: String?,
-        session: HttpSession,
+        request: HttpServletRequest,
         model: Model
     ): String {
-        val username = session.getAttribute("username") as? String
-        val userId = session.getAttribute("userId") as? String
-        model.addAttribute("username", username)
+        val claims = jwtCookieService.getClaims(request)
+        model.addAttribute("username", claims?.username)
         model.addAttribute("q", q)
         if (!q.isNullOrBlank()) {
             model.addAttribute("products", catalogClient.search(q))
         } else {
-            model.addAttribute("products", catalogClient.getRecommended(userId?.let { UUID.fromString(it) }))
+            model.addAttribute("products", catalogClient.getRecommended(claims?.userId?.let { UUID.fromString(it) }))
         }
         return "home"
     }
 
     @GetMapping("/me")
-    fun mePage(session: HttpSession, model: Model): String {
-        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+    fun mePage(request: HttpServletRequest, model: Model): String {
+        val claims = jwtCookieService.getClaims(request) ?: return "redirect:/login"
         log.info("GET /me")
-        val user = usersClient.getMe(token) ?: return "redirect:/logout"
+        val user = usersClient.getMe(claims.token) ?: return "redirect:/logout"
         model.addAttribute("user", user)
-        model.addAttribute("recentOrders", ordersClient.getMe(token).take(5))
-        model.addAttribute("recentPayments", paymentsClient.getHistory(token)?.take(5))
+        model.addAttribute("recentOrders", ordersClient.getMe(claims.token).take(5))
+        model.addAttribute("recentPayments", paymentsClient.getHistory(claims.token)?.take(5))
         return "me"
     }
 
     @GetMapping("/payments")
-    fun paymentsPage(session: HttpSession, model: Model): String {
-        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
-        model.addAttribute("username", session.getAttribute("username"))
-        model.addAttribute("payments", paymentsClient.getHistory(token))
+    fun paymentsPage(request: HttpServletRequest, model: Model): String {
+        val claims = jwtCookieService.getClaims(request) ?: return "redirect:/login"
+        model.addAttribute("username", claims.username)
+        model.addAttribute("payments", paymentsClient.getHistory(claims.token))
         return "payments"
     }
 
     @GetMapping("/me/payment-methods")
-    fun paymentMethodsPage(session: HttpSession, model: Model): String {
-        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
-        model.addAttribute("username", session.getAttribute("username"))
-        model.addAttribute("paymentMethods", paymentsClient.getMethods(token))
+    fun paymentMethodsPage(request: HttpServletRequest, model: Model): String {
+        val claims = jwtCookieService.getClaims(request) ?: return "redirect:/login"
+        model.addAttribute("username", claims.username)
+        model.addAttribute("paymentMethods", paymentsClient.getMethods(claims.token))
         model.addAttribute("paymentMethodTypes", listOf("CreditCard", "DebitCard", "Paypal", "ApplePay", "GooglePay", "Ach"))
         return "me/payment-methods"
     }
 
     @GetMapping("/me/shipping")
-    fun shippingPage(session: HttpSession, model: Model): String {
-        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
-        model.addAttribute("username", session.getAttribute("username"))
-        model.addAttribute("shippingAddresses", shippingClient.getAddresses(token))
+    fun shippingPage(request: HttpServletRequest, model: Model): String {
+        val claims = jwtCookieService.getClaims(request) ?: return "redirect:/login"
+        model.addAttribute("username", claims.username)
+        model.addAttribute("shippingAddresses", shippingClient.getAddresses(claims.token))
         return "me/shipping"
     }
 
     @PostMapping("/me/update-email")
     fun updateEmail(
         @RequestParam email: String,
-        session: HttpSession,
+        request: HttpServletRequest,
         redirectAttributes: RedirectAttributes
     ): String {
-        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+        val token = jwtCookieService.getToken(request) ?: return "redirect:/login"
         return try {
             usersClient.updateEmail(token, email) ?: throw RuntimeException("Update failed")
             redirectAttributes.addFlashAttribute("successEmail", "Email updated successfully")
@@ -110,10 +109,10 @@ class WebController(
     fun addPaymentMethod(
         @RequestParam type: String,
         @RequestParam label: String,
-        session: HttpSession,
+        request: HttpServletRequest,
         redirectAttributes: RedirectAttributes
     ): String {
-        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+        val token = jwtCookieService.getToken(request) ?: return "redirect:/login"
         return try {
             paymentsClient.addMethod(token, type, label) ?: throw RuntimeException("Add failed")
             redirectAttributes.addFlashAttribute("successPayments", "Payment method added")
@@ -129,10 +128,10 @@ class WebController(
         @PathVariable methodId: UUID,
         @RequestParam label: String,
         @RequestParam(defaultValue = "false") isDefault: Boolean,
-        session: HttpSession,
+        request: HttpServletRequest,
         redirectAttributes: RedirectAttributes
     ): String {
-        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+        val token = jwtCookieService.getToken(request) ?: return "redirect:/login"
         return try {
             paymentsClient.updateMethod(token, methodId, label, isDefault) ?: throw RuntimeException("Update failed")
             redirectAttributes.addFlashAttribute("successPayments", "Payment method updated")
@@ -146,10 +145,10 @@ class WebController(
     @PostMapping("/me/payments/{methodId}/delete")
     fun deletePaymentMethod(
         @PathVariable methodId: UUID,
-        session: HttpSession,
+        request: HttpServletRequest,
         redirectAttributes: RedirectAttributes
     ): String {
-        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+        val token = jwtCookieService.getToken(request) ?: return "redirect:/login"
         return try {
             paymentsClient.deleteMethod(token, methodId)
             redirectAttributes.addFlashAttribute("successPayments", "Payment method removed")
@@ -168,10 +167,10 @@ class WebController(
         @RequestParam state: String,
         @RequestParam postalCode: String,
         @RequestParam country: String,
-        session: HttpSession,
+        request: HttpServletRequest,
         redirectAttributes: RedirectAttributes
     ): String {
-        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+        val token = jwtCookieService.getToken(request) ?: return "redirect:/login"
         return try {
             shippingClient.addAddress(token, CreateAddressRequest(label, street, city, state, postalCode, country))
                 ?: throw RuntimeException("Add failed")
@@ -192,10 +191,10 @@ class WebController(
         @RequestParam state: String,
         @RequestParam postalCode: String,
         @RequestParam country: String,
-        session: HttpSession,
+        request: HttpServletRequest,
         redirectAttributes: RedirectAttributes
     ): String {
-        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+        val token = jwtCookieService.getToken(request) ?: return "redirect:/login"
         return try {
             shippingClient.updateAddress(token, id, UpdateAddressRequest(label, street, city, state, postalCode, country))
                 ?: throw RuntimeException("Update failed")
@@ -210,10 +209,10 @@ class WebController(
     @PostMapping("/me/shipping/{id}/delete")
     fun deleteShippingAddress(
         @PathVariable id: UUID,
-        session: HttpSession,
+        request: HttpServletRequest,
         redirectAttributes: RedirectAttributes
     ): String {
-        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
+        val token = jwtCookieService.getToken(request) ?: return "redirect:/login"
         return try {
             shippingClient.deleteAddress(token, id)
             redirectAttributes.addFlashAttribute("successShipping", "Address removed")
@@ -225,24 +224,24 @@ class WebController(
     }
 
     @GetMapping("/me/orders")
-    fun ordersPage(session: HttpSession, model: Model): String {
-        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
-        model.addAttribute("username", session.getAttribute("username"))
-        model.addAttribute("orders", ordersClient.getMe(token))
+    fun ordersPage(request: HttpServletRequest, model: Model): String {
+        val claims = jwtCookieService.getClaims(request) ?: return "redirect:/login"
+        model.addAttribute("username", claims.username)
+        model.addAttribute("orders", ordersClient.getMe(claims.token))
         return "orders/index"
     }
 
     @GetMapping("/me/orders/{id}")
     fun orderDetailPage(
         @PathVariable id: UUID,
-        session: HttpSession,
+        request: HttpServletRequest,
         model: Model
     ): String {
-        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
-        val order: OrderDetail = ordersClient.getOrderDetail(token, id) ?: return "redirect:/me/orders"
-        val paymentMethod = paymentsClient.getMethods(token)?.find { it.userPaymentMethodId == order.paymentMethodId }
-        val shippingAddress = shippingClient.getAddresses(token)?.find { it.id == order.shippingAddressId }
-        model.addAttribute("username", session.getAttribute("username"))
+        val claims = jwtCookieService.getClaims(request) ?: return "redirect:/login"
+        val order: OrderDetail = ordersClient.getOrderDetail(claims.token, id) ?: return "redirect:/me/orders"
+        val paymentMethod = paymentsClient.getMethods(claims.token)?.find { it.userPaymentMethodId == order.paymentMethodId }
+        val shippingAddress = shippingClient.getAddresses(claims.token)?.find { it.id == order.shippingAddressId }
+        model.addAttribute("username", claims.username)
         model.addAttribute("order", order)
         model.addAttribute("paymentMethod", paymentMethod)
         model.addAttribute("shippingAddress", shippingAddress)
@@ -253,20 +252,18 @@ class WebController(
 
     @GetMapping("/cart")
     fun cartPage(
-        session: HttpSession,
         request: HttpServletRequest,
         model: Model
     ): String {
-        val token = session.getAttribute("token") as? String
-        val username = session.getAttribute("username") as? String
-        model.addAttribute("username", username)
+        val claims = jwtCookieService.getClaims(request)
+        model.addAttribute("username", claims?.username)
 
-        if (token != null) {
-            val items = cartClient.getItems(token)
+        if (claims != null) {
+            val items = cartClient.getItems(claims.token)
             model.addAttribute("items", items)
             model.addAttribute("total", items.sumOf { it.price.multiply(BigDecimal(it.quantity)) })
-            model.addAttribute("paymentMethods", paymentsClient.getMethods(token))
-            model.addAttribute("shippingAddresses", shippingClient.getAddresses(token))
+            model.addAttribute("paymentMethods", paymentsClient.getMethods(claims.token))
+            model.addAttribute("shippingAddresses", shippingClient.getAddresses(claims.token))
             model.addAttribute("loggedIn", true)
         } else {
             val items = cookieCartService.getItems(request)
@@ -283,12 +280,11 @@ class WebController(
         @RequestParam title: String,
         @RequestParam price: BigDecimal,
         @RequestParam(defaultValue = "1") quantity: Int,
-        session: HttpSession,
         request: HttpServletRequest,
         response: HttpServletResponse,
         redirectAttributes: RedirectAttributes
     ): String {
-        val token = session.getAttribute("token") as? String
+        val token = jwtCookieService.getToken(request)
         val item = CartItemDto(productId, title, price, quantity)
         if (token != null) {
             cartClient.addItem(token, item)
@@ -301,11 +297,10 @@ class WebController(
     @PostMapping("/cart/remove")
     fun removeFromCart(
         @RequestParam productId: UUID,
-        session: HttpSession,
         request: HttpServletRequest,
         response: HttpServletResponse
     ): String {
-        val token = session.getAttribute("token") as? String
+        val token = jwtCookieService.getToken(request)
         if (token != null) {
             cartClient.removeItem(token, productId)
         } else {
@@ -318,24 +313,23 @@ class WebController(
     fun placeOrder(
         @RequestParam paymentMethodId: UUID,
         @RequestParam shippingAddressId: UUID,
-        session: HttpSession,
+        request: HttpServletRequest,
         redirectAttributes: RedirectAttributes
     ): String {
-        val token = session.getAttribute("token") as? String ?: return "redirect:/login"
-        val userId = session.getAttribute("userId") as? String ?: return "redirect:/login"
+        val claims = jwtCookieService.getClaims(request) ?: return "redirect:/login"
 
-        val items = cartClient.getItems(token)
+        val items = cartClient.getItems(claims.token)
         if (items.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Your cart is empty.")
             return "redirect:/cart"
         }
 
         val orderItems = items.map { PlaceOrderItem(it.productId, it.title, it.price, it.quantity) }
-        val request = PlaceOrderRequest(UUID.fromString(userId), paymentMethodId, shippingAddressId, orderItems)
+        val orderRequest = PlaceOrderRequest(UUID.fromString(claims.userId), paymentMethodId, shippingAddressId, orderItems)
 
         return try {
-            val placed = ordersClient.placeOrder(token, request) ?: throw RuntimeException("Order failed")
-            cartClient.clearCart(token)
+            val placed = ordersClient.placeOrder(claims.token, orderRequest) ?: throw RuntimeException("Order failed")
+            cartClient.clearCart(claims.token)
             "redirect:/me/orders/${placed.orderId}"
         } catch (e: Exception) {
             redirectAttributes.addFlashAttribute("error", "Failed to place order. Please try again.")
@@ -346,8 +340,8 @@ class WebController(
     // --- Auth ---
 
     @GetMapping("/login")
-    fun loginPage(session: HttpSession): String {
-        if (session.getAttribute("token") != null) return "redirect:/"
+    fun loginPage(request: HttpServletRequest): String {
+        if (jwtCookieService.getToken(request) != null) return "redirect:/"
         return "login"
     }
 
@@ -355,7 +349,6 @@ class WebController(
     fun login(
         @RequestParam email: String,
         @RequestParam password: String,
-        session: HttpSession,
         request: HttpServletRequest,
         response: HttpServletResponse,
         redirectAttributes: RedirectAttributes
@@ -363,9 +356,7 @@ class WebController(
         return try {
             val loginResponse = usersClient.login(email, password)
                 ?: throw RuntimeException("Login failed")
-            session.setAttribute("token", loginResponse.token)
-            session.setAttribute("username", loginResponse.username)
-            session.setAttribute("userId", loginResponse.userId.toString())
+            jwtCookieService.setToken(loginResponse.token, response)
 
             val cookieItems = cookieCartService.getItems(request)
             if (cookieItems.isNotEmpty()) {
@@ -381,8 +372,8 @@ class WebController(
     }
 
     @GetMapping("/register")
-    fun registerPage(session: HttpSession): String {
-        if (session.getAttribute("token") != null) return "redirect:/"
+    fun registerPage(request: HttpServletRequest): String {
+        if (jwtCookieService.getToken(request) != null) return "redirect:/"
         return "register"
     }
 
@@ -391,15 +382,14 @@ class WebController(
         @RequestParam username: String,
         @RequestParam email: String,
         @RequestParam password: String,
-        session: HttpSession,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
         redirectAttributes: RedirectAttributes
     ): String {
         return try {
             val registerResponse = usersClient.register(username, email, password)
                 ?: throw RuntimeException("Registration failed")
-            session.setAttribute("token", registerResponse.token)
-            session.setAttribute("username", registerResponse.username)
-            session.setAttribute("userId", registerResponse.userId.toString())
+            jwtCookieService.setToken(registerResponse.token, response)
             "redirect:/me"
         } catch (e: Exception) {
             redirectAttributes.addFlashAttribute("error", "Registration failed. The email may already be in use.")
@@ -408,8 +398,8 @@ class WebController(
     }
 
     @GetMapping("/logout")
-    fun logout(session: HttpSession): String {
-        session.invalidate()
+    fun logout(request: HttpServletRequest, response: HttpServletResponse): String {
+        jwtCookieService.clearToken(response)
         return "redirect:/login"
     }
 
