@@ -57,6 +57,7 @@ class WebController(
         val claims = jwtCookieService.getClaims(request) ?: return "redirect:/login"
         log.info("GET /me")
         val user = usersClient.getMe(claims.token) ?: return "redirect:/logout"
+        model.addAttribute("username", claims.username)
         model.addAttribute("user", user)
         model.addAttribute("recentOrders", ordersClient.getMe(claims.token).take(5))
         model.addAttribute("recentPayments", paymentsClient.getHistory(claims.token)?.take(5))
