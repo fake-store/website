@@ -3,31 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <title>Fakestore</title>
+    <link rel="stylesheet" th:href="@{/css/fakestore.css}">
+    <link rel="icon" type="image/png" th:href="@{/images/favicon.png}">
     <style>
-        body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
-        nav { background: #2563eb; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-        nav h1 { margin: 0; font-size: 1.25rem; }
-        nav h1 a { color: white; text-decoration: none; }
-        nav a { color: white; text-decoration: none; font-size: 0.875rem; }
-        nav a:hover { text-decoration: underline; }
-        .nav-right { display: flex; align-items: center; gap: 1rem; }
-        .cart-btn { background: white; color: #2563eb; border: none; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; text-decoration: none; }
-        .cart-btn:hover { background: #dbeafe; }
-        .user-menu { position: relative; }
-        .user-menu summary { list-style: none; cursor: pointer; font-size: 0.875rem; color: white; }
-        .user-menu summary::-webkit-details-marker { display: none; }
-        .user-menu summary::after { content: " ▾"; }
-        .user-menu-dropdown { position: absolute; right: 0; top: 100%; margin-top: 0.4rem; background: white; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); min-width: 150px; z-index: 100; overflow: hidden; }
-        .user-menu-dropdown a { display: block; padding: 0.6rem 1rem; color: #111827; font-size: 0.875rem; text-decoration: none; }
-        .user-menu-dropdown a:hover { background: #f3f4f6; }
-        .user-menu-dropdown hr { margin: 0; border: none; border-top: 1px solid #e5e7eb; }
-        .login-btn { background: white; color: #2563eb; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; text-decoration: none; }
-        .login-btn:hover { background: #dbeafe; text-decoration: none; }
-        main { padding: 2rem; max-width: 1100px; margin: 0 auto; }
+        main { max-width: 1100px; }
         .search-bar { display: flex; gap: 0.5rem; margin-bottom: 2rem; }
         .search-bar input { flex: 1; padding: 0.6rem 1rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; }
-        .search-bar button { background: #2563eb; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; font-size: 1rem; cursor: pointer; }
-        .search-bar button:hover { background: #1d4ed8; }
+        .search-bar button { background: var(--brand-purple); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; font-size: 1rem; cursor: pointer; }
+        .search-bar button:hover { background: var(--brand-purple-hover); }
         .section-title { font-size: 1rem; color: #6b7280; margin-bottom: 1rem; }
         .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.25rem; }
         .product-tile { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; display: flex; flex-direction: column; }
@@ -36,35 +19,16 @@
         .product-tile .info { padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.25rem; }
         .product-tile .title { font-weight: 600; font-size: 0.95rem; color: #111827; }
         .product-tile .desc { font-size: 0.8rem; color: #6b7280; flex: 1; }
-        .product-tile .price { font-size: 1rem; font-weight: 700; color: #2563eb; margin-top: 0.5rem; }
+        .product-tile .price { font-size: 1rem; font-weight: 700; color: var(--brand-purple); margin-top: 0.5rem; }
         .product-tile .actions { padding: 0 1rem 1rem; }
-        .add-to-cart { width: 100%; background: #2563eb; color: white; border: none; padding: 0.5rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
-        .add-to-cart:hover { background: #1d4ed8; }
+        .add-to-cart { width: 100%; background: var(--brand-purple); color: white; border: none; padding: 0.5rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+        .add-to-cart:hover { background: var(--brand-purple-hover); }
         .unavailable { color: #9ca3af; font-style: italic; padding: 2rem 0; }
         .empty { color: #6b7280; padding: 2rem 0; }
     </style>
 </head>
 <body>
-<nav>
-    <h1><a href="/">Fakestore</a></h1>
-    <div class="nav-right">
-        <a href="/cart" class="cart-btn" th:text="${cartCount > 0 ? 'Cart (' + cartCount + ')' : 'Cart'}">Cart</a>
-        <div th:if="${username != null}">
-            <details class="user-menu">
-                <summary th:text="${username}"></summary>
-                <div class="user-menu-dropdown">
-                    <a href="/me">My Account</a>
-                    <a href="/me/orders">My Orders</a>
-                    <hr>
-                    <a href="/logout">Sign out</a>
-                </div>
-            </details>
-        </div>
-        <div th:if="${username == null}">
-            <a href="/login" class="login-btn">Sign in</a>
-        </div>
-    </div>
-</nav>
+<nav th:replace="~{fragments/nav :: main}"></nav>
 <main>
     <form method="get" th:action="@{/}" class="search-bar">
         <input type="text" name="q" th:value="${q}" placeholder="Search products…">

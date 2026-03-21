@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Standard nav: wordmark + cart + user menu / login -->
+<nav th:fragment="main">
+    <a href="/" class="nav-wordmark">
+        <img th:src="@{/images/wordmark.png}" alt="Fakestore">
+    </a>
+    <div class="nav-right">
+        <a href="/cart" class="cart-btn"
+           th:text="${cartCount != null and cartCount > 0 ? 'Cart (' + cartCount + ')' : 'Cart'}">Cart</a>
+        <div th:if="${username != null}">
+            <details class="user-menu">
+                <summary th:text="${username}"></summary>
+                <div class="user-menu-dropdown">
+                    <a href="/me">My Account</a>
+                    <a href="/me/orders">My Orders</a>
+                    <hr>
+                    <a href="/logout">Sign out</a>
+                </div>
+            </details>
+        </div>
+        <div th:if="${username == null}">
+            <a href="/login" class="login-btn">Sign in</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Admin nav: wordmark + admin label + store link -->
+<nav th:fragment="admin">
+    <div style="display:flex;align-items:center;gap:0.75rem;">
+        <a href="/admin" class="nav-wordmark">
+            <img th:src="@{/images/wordmark.png}" alt="Fakestore">
+        </a>
+        <span class="nav-badge">Admin</span>
+    </div>
+    <div style="display:flex;gap:1.5rem;align-items:center;">
+        <a href="/" class="nav-link-muted">Store</a>
+        <span class="nav-badge">⚠ Unsecured</span>
+    </div>
+</nav>
+
+</body>
+</html>

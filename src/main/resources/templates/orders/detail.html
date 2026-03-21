@@ -5,29 +5,14 @@
     <title>Fakestore - Order</title>
     <meta th:if="${order.status == 'CREATED' or order.status == 'SUBMITTED'}"
           http-equiv="refresh" content="5">
+    <link rel="stylesheet" th:href="@{/css/fakestore.css}">
+    <link rel="icon" type="image/png" th:href="@{/images/favicon.png}">
     <style>
-        body { font-family: sans-serif; margin: 0; background: #f5f5f5; }
-        nav { background: #2563eb; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-        nav h1 { margin: 0; font-size: 1.25rem; }
-        nav a { color: white; text-decoration: none; font-size: 0.875rem; }
-        nav a:hover { text-decoration: underline; }
-        .nav-right { display: flex; align-items: center; gap: 1rem; }
-        .cart-btn { background: white; color: #2563eb; padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; text-decoration: none; }
-        .cart-btn:hover { background: #dbeafe; }
-        .user-menu { position: relative; }
-        .user-menu summary { list-style: none; cursor: pointer; font-size: 0.875rem; color: white; }
-        .user-menu summary::-webkit-details-marker { display: none; }
-        .user-menu summary::after { content: " ▾"; }
-        .user-menu-dropdown { position: absolute; right: 0; top: 100%; margin-top: 0.4rem; background: white; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); min-width: 150px; z-index: 100; overflow: hidden; }
-        .user-menu-dropdown a { display: block; padding: 0.6rem 1rem; color: #111827; font-size: 0.875rem; text-decoration: none; }
-        .user-menu-dropdown a:hover { background: #f3f4f6; }
-        .user-menu-dropdown hr { margin: 0; border: none; border-top: 1px solid #e5e7eb; }
-        main { padding: 2rem; max-width: 900px; margin: 0 auto; display: grid; gap: 1.5rem; }
-        .card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .card h2 { margin-top: 0; font-size: 1.1rem; color: #1e40af; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+        main { display: grid; gap: 1.5rem; max-width: 900px; }
         .order-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
         .order-header h1 { margin: 0; font-size: 1.25rem; }
-        .back-link { color: #6b7280; font-size: 0.875rem; }
+        .back-link { color: var(--text-muted); font-size: 0.875rem; text-decoration: none; }
+        .back-link:hover { color: var(--text-dark); }
         .status { display: inline-block; padding: 0.25rem 0.65rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }
         .status-SUBMITTED, .status-CREATED { background: #fef9c3; color: #854d0e; }
         .status-PAID       { background: #dcfce7; color: #15803d; }
@@ -35,40 +20,22 @@
         .status-CANCELLED  { background: #f3f4f6; color: #6b7280; }
         table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
         th { text-align: left; padding: 0.5rem 0.75rem; background: #f3f4f6; color: #374151; font-weight: 600; }
-        td { padding: 0.5rem 0.75rem; border-top: 1px solid #e5e7eb; }
-        .total-row td { font-weight: 700; border-top: 2px solid #e5e7eb; }
+        td { padding: 0.5rem 0.75rem; border-top: 1px solid var(--border); }
+        .total-row td { font-weight: 700; border-top: 2px solid var(--border); }
         .field { margin: 0.35rem 0; font-size: 0.9rem; }
-        .field span { color: #6b7280; }
+        .field span { color: var(--text-muted); }
         .unavailable { color: #9ca3af; font-style: italic; font-size: 0.875rem; }
-
-        /* Payment status display */
         .payment-processing { display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: #fefce8; border: 1px solid #fde68a; border-radius: 6px; color: #92400e; }
         .payment-paid { display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; color: #166534; }
         .payment-rejected { display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; color: #991b1b; }
         .payment-icon { font-size: 1.25rem; }
-        .payment-detail { font-size: 0.875rem; color: #6b7280; margin-top: 0.25rem; }
-
-        /* Spinner */
+        .payment-detail { font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { display: inline-block; width: 1.1rem; height: 1.1rem; border: 2px solid #fde68a; border-top-color: #92400e; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
     </style>
 </head>
 <body>
-<nav>
-    <h1><a href="/" style="color:white;text-decoration:none;">Fakestore</a></h1>
-    <div class="nav-right">
-        <a href="/cart" class="cart-btn" th:text="${cartCount > 0 ? 'Cart (' + cartCount + ')' : 'Cart'}">Cart</a>
-        <details class="user-menu">
-            <summary th:text="${username}"></summary>
-            <div class="user-menu-dropdown">
-                <a href="/me">My Account</a>
-                <a href="/me/orders">My Orders</a>
-                <hr>
-                <a href="/logout">Sign out</a>
-            </div>
-        </details>
-    </div>
-</nav>
+<nav th:replace="~{fragments/nav :: main}"></nav>
 <main>
 
     <!-- Header -->
@@ -77,7 +44,7 @@
             <h1>Order <code th:text="${#strings.substring(order.id.toString(), 0, 8) + '…'}"></code></h1>
             <div style="margin-top:0.4rem;">
                 <span class="status" th:classappend="'status-' + ${order.status}" th:text="${order.status}"></span>
-                <span style="color:#6b7280;font-size:0.875rem;margin-left:0.75rem;"
+                <span style="color:var(--text-muted);font-size:0.875rem;margin-left:0.75rem;"
                       th:text="${#temporals.format(order.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
             </div>
         </div>
