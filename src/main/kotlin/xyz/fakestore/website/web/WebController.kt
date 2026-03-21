@@ -287,7 +287,8 @@ class WebController(
         val token = jwtCookieService.getToken(request)
         val item = CartItemDto(productId, title, price, quantity)
         if (token != null) {
-            cartClient.addItem(token, item)
+            val ok = cartClient.addItem(token, item)
+            if (!ok) redirectAttributes.addFlashAttribute("error", "Failed to add item to cart. Please try again.")
         } else {
             cookieCartService.addItem(item, request, response)
         }

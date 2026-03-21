@@ -1,5 +1,6 @@
 package xyz.fakestore.website.client
 
+import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -25,6 +26,7 @@ data class CartItemView(
 @Component
 class CartClient(@Value("\${services.orders.url}") baseUrl: String) {
 
+    private val log = LoggerFactory.getLogger(CartClient::class.java)
     private val webClient = WebClient.builder().baseUrl(baseUrl).build()
 
     fun getItems(token: String): List<CartItemView> = runCatching {
@@ -35,9 +37,10 @@ class CartClient(@Value("\${services.orders.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<List<CartItemView>>()
             .block() ?: emptyList()
-    }.getOrDefault(emptyList())
+    }.onFailure { log.error("CartClient.getItems failed", it) }
+     .getOrDefault(emptyList())
 
-    fun addItem(token: String, item: CartItemDto) = runCatching {
+    fun addItem(token: String, item: CartItemDto): Boolean = runCatching {
         webClient.post()
             .uri("/api/cart/items")
             .header("Authorization", "Bearer $token")
@@ -46,7 +49,9 @@ class CartClient(@Value("\${services.orders.url}") baseUrl: String) {
             .retrieve()
             .toBodilessEntity()
             .block()
-    }.getOrNull()
+        true
+    }.onFailure { log.error("CartClient.addItem failed", it) }
+     .getOrDefault(false)
 
     fun removeItem(token: String, productId: UUID) = runCatching {
         webClient.delete()
@@ -56,7 +61,8 @@ class CartClient(@Value("\${services.orders.url}") baseUrl: String) {
             .retrieve()
             .toBodilessEntity()
             .block()
-    }.getOrNull()
+    }.onFailure { log.error("CartClient.removeItem failed", it) }
+     .getOrNull()
 
     fun clearCart(token: String) = runCatching {
         webClient.delete()
@@ -66,7 +72,8 @@ class CartClient(@Value("\${services.orders.url}") baseUrl: String) {
             .retrieve()
             .toBodilessEntity()
             .block()
-    }.getOrNull()
+    }.onFailure { log.error("CartClient.clearCart failed", it) }
+     .getOrNull()
 
     fun mergeItems(token: String, items: List<CartItemDto>) = runCatching {
         webClient.post()
@@ -77,5 +84,6 @@ class CartClient(@Value("\${services.orders.url}") baseUrl: String) {
             .retrieve()
             .toBodilessEntity()
             .block()
-    }.getOrNull()
+    }.onFailure { log.error("CartClient.mergeItems failed", it) }
+     .getOrNull()
 }
