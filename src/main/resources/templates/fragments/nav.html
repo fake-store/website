@@ -8,6 +8,8 @@
         <img th:src="@{/images/wordmark.png}" alt="Fakestore">
     </a>
     <div class="nav-right">
+        <a href="https://github.com/fake-store" class="nav-link-muted" target="_blank" rel="noopener">About</a>
+        <a href="/admin" class="nav-link-muted">Admin</a>
         <a href="/cart" class="cart-btn"
            th:text="${cartCount != null and cartCount > 0 ? 'Cart (' + cartCount + ')' : 'Cart'}">Cart</a>
         <div th:if="${username != null}">
@@ -24,20 +26,6 @@
         <div th:if="${username == null}">
             <a href="/login" class="login-btn">Sign in</a>
         </div>
-    </div>
-</nav>
-
-<!-- Admin nav: wordmark + admin label + store link -->
-<nav th:fragment="admin">
-    <div style="display:flex;align-items:center;gap:0.75rem;">
-        <a href="/admin" class="nav-wordmark">
-            <img th:src="@{/images/wordmark.png}" alt="Fakestore">
-        </a>
-        <span class="nav-badge">Admin</span>
-    </div>
-    <div style="display:flex;gap:1.5rem;align-items:center;">
-        <a href="/" class="nav-link-muted">Store</a>
-        <span class="nav-badge">⚠ Unsecured</span>
     </div>
 </nav>
 

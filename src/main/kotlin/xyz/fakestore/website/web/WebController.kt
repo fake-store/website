@@ -85,7 +85,8 @@ class WebController(
     fun shippingPage(request: HttpServletRequest, model: Model): String {
         val claims = jwtCookieService.getClaims(request) ?: return "redirect:/login"
         model.addAttribute("username", claims.username)
-        model.addAttribute("shippingAddresses", shippingClient.getAddresses(claims.token))
+        val shippingAddresses = if (shippingClient.isAvailable()) shippingClient.getAddresses(claims.token) else null
+        model.addAttribute("shippingAddresses", shippingAddresses)
         return "me/shipping"
     }
 
@@ -275,25 +276,27 @@ class WebController(
         return "cart/index"
     }
 
-    @PostMapping("/cart/add")
+    @PostMapping("/cart/add", produces = ["application/json"])
+    @ResponseBody
     fun addToCart(
         @RequestParam productId: UUID,
         @RequestParam title: String,
         @RequestParam price: BigDecimal,
         @RequestParam(defaultValue = "1") quantity: Int,
         request: HttpServletRequest,
-        response: HttpServletResponse,
-        redirectAttributes: RedirectAttributes
-    ): String {
+        response: HttpServletResponse
+    ): Map<String, Any> {
         val token = jwtCookieService.getToken(request)
         val item = CartItemDto(productId, title, price, quantity)
+        var ok = true
         if (token != null) {
-            val ok = cartClient.addItem(token, item)
-            if (!ok) redirectAttributes.addFlashAttribute("error", "Failed to add item to cart. Please try again.")
+            ok = cartClient.addItem(token, item)
         } else {
             cookieCartService.addItem(item, request, response)
         }
-        return "redirect:/cart"
+        val count = if (token != null) cartClient.getItems(token)?.size ?: 0
+                    else cookieCartService.getItems(request).size
+        return mapOf("ok" to ok, "cartCount" to count)
     }
 
     @PostMapping("/cart/remove")
@@ -342,8 +345,9 @@ class WebController(
     // --- Auth ---
 
     @GetMapping("/login")
-    fun loginPage(request: HttpServletRequest): String {
-        if (jwtCookieService.getToken(request) != null) return "redirect:/"
+    fun loginPage(request: HttpServletRequest, response: HttpServletResponse): String {
+        if (jwtCookieService.getClaims(request) != null) return "redirect:/"
+        if (jwtCookieService.getToken(request) != null) jwtCookieService.clearToken(response)
         return "login"
     }
 
@@ -374,8 +378,9 @@ class WebController(
     }
 
     @GetMapping("/register")
-    fun registerPage(request: HttpServletRequest): String {
-        if (jwtCookieService.getToken(request) != null) return "redirect:/"
+    fun registerPage(request: HttpServletRequest, response: HttpServletResponse): String {
+        if (jwtCookieService.getClaims(request) != null) return "redirect:/"
+        if (jwtCookieService.getToken(request) != null) jwtCookieService.clearToken(response)
         return "register"
     }
 

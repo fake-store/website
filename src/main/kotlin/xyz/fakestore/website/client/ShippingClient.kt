@@ -1,5 +1,6 @@
 package xyz.fakestore.website.client
 
+import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -39,7 +40,13 @@ data class UpdateAddressRequest(
 @Component
 class ShippingClient(@Value("\${services.shipping.url}") baseUrl: String) {
 
+    private val log = LoggerFactory.getLogger(ShippingClient::class.java)
     private val webClient = WebClient.builder().baseUrl(baseUrl).build()
+
+    fun isAvailable(): Boolean = runCatching {
+        webClient.get().uri("/health").retrieve().toBodilessEntity().block()
+        true
+    }.onFailure { log.warn("Shipping service unavailable (health check): {}", it.message) }.getOrDefault(false)
 
     fun getAddresses(token: String): List<ShippingAddress>? = runCatching {
         webClient.get()
@@ -49,7 +56,7 @@ class ShippingClient(@Value("\${services.shipping.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<List<ShippingAddress>>()
             .block()
-    }.getOrNull()
+    }.onFailure { log.warn("Shipping service unavailable (getAddresses): {}", it.message) }.getOrNull()
 
     fun addAddress(token: String, req: CreateAddressRequest): ShippingAddress? = runCatching {
         webClient.post()
@@ -60,7 +67,7 @@ class ShippingClient(@Value("\${services.shipping.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<ShippingAddress>()
             .block()
-    }.getOrNull()
+    }.onFailure { log.warn("Shipping service unavailable (addAddress): {}", it.message) }.getOrNull()
 
     fun updateAddress(token: String, id: UUID, req: UpdateAddressRequest): ShippingAddress? = runCatching {
         webClient.put()
@@ -71,7 +78,7 @@ class ShippingClient(@Value("\${services.shipping.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<ShippingAddress>()
             .block()
-    }.getOrNull()
+    }.onFailure { log.warn("Shipping service unavailable (updateAddress): {}", it.message) }.getOrNull()
 
     fun deleteAddress(token: String, id: UUID): Boolean = runCatching {
         webClient.delete()
@@ -82,5 +89,5 @@ class ShippingClient(@Value("\${services.shipping.url}") baseUrl: String) {
             .toBodilessEntity()
             .block()
         true
-    }.getOrDefault(false)
+    }.onFailure { log.warn("Shipping service unavailable (deleteAddress): {}", it.message) }.getOrDefault(false)
 }
