@@ -10,24 +10,66 @@
         .stat span { font-size: 0.9rem; font-weight: 400; color: var(--text-muted); }
         .alert-warn { margin-bottom: 0.75rem; }
         .unavailable { color: #9ca3af; font-style: italic; font-size: 0.95rem; margin: 0.75rem 0; }
+        .dev-only-banner {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            margin-bottom: 1.5rem;
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
+        th { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 2px solid #e5e7eb; color: var(--text-muted); font-weight: 600; }
+        td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #f3f4f6; font-size: 0.85rem; }
+        tr:last-child td { border-bottom: none; }
+        .user-id { color: #9ca3af; font-family: monospace; }
     </style>
 </head>
 <body>
-<nav th:replace="~{fragments/nav :: admin}"></nav>
-<main style="max-width: 700px;">
+<nav th:replace="~{fragments/nav :: main}"></nav>
+<main style="max-width: 860px;">
+
+    <div class="dev-only-banner">
+        ⚠ This page is for development only and would not exist in a production system.
+    </div>
+
     <div class="card">
         <h2>Users</h2>
         <div th:if="${message}" class="alert-warn" th:text="${message}"></div>
         <div th:if="${error}" class="alert-error" th:text="${error}"></div>
+
         <div th:if="${userCount != null}" class="stat">
             <span th:text="${userCount}"></span> <span>users in system</span>
         </div>
         <div th:if="${userCount == null}" class="unavailable">Users service unreachable</div>
+
         <form method="post" th:action="@{/admin/users/delete-all}"
               onsubmit="return confirm('Delete ALL users? This cannot be undone.')">
             <button type="submit" class="btn-danger" th:disabled="${userCount == null}">Delete All Users</button>
         </form>
+
+        <div th:if="${users != null and !users.isEmpty()}">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>User ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="user : ${users}">
+                        <td th:text="${user.username}"></td>
+                        <td th:text="${user.email}"></td>
+                        <td class="user-id" th:text="${user.userId}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${users != null and users.isEmpty()}" class="unavailable">No users registered.</div>
     </div>
+
 </main>
 </body>
 </html>

@@ -45,7 +45,7 @@
                         <td th:text="${a.street + ', ' + a.city + ', ' + a.state + ' ' + a.postalCode + ', ' + a.country}"></td>
                         <td>
                             <details>
-                                <summary><button type="button" class="btn-sm">Edit</button></summary>
+                                <summary><span class="btn-sm">Edit</span></summary>
                                 <form method="post" th:action="@{/me/shipping/{id}/update(id=${a.id})}" style="margin-top:0.4rem;">
                                     <div class="inline-form">
                                         <input type="text" name="label" th:value="${a.label}" placeholder="Label" required>
@@ -68,7 +68,7 @@
             </table>
             <div style="margin-top: 1rem;">
                 <details>
-                    <summary><button type="button" class="btn-link">+ Add shipping address</button></summary>
+                    <summary><span class="btn-link">+ Add shipping address</span></summary>
                     <form method="post" th:action="@{/me/shipping/add}" style="margin-top: 0.5rem;">
                         <div class="inline-form">
                             <input type="text" name="label" placeholder="Label (e.g. Home)" required>

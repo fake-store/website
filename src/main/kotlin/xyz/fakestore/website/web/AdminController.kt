@@ -14,7 +14,9 @@ class AdminController(private val adminClient: AdminClient) {
 
     @GetMapping
     fun adminPage(model: Model): String {
-        model.addAttribute("userCount", adminClient.getUserCount())
+        val users = adminClient.getUsers()
+        model.addAttribute("users", users)
+        model.addAttribute("userCount", users?.size?.toLong() ?: adminClient.getUserCount())
         return "admin"
     }
 

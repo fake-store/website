@@ -49,17 +49,35 @@
                     <div class="price" th:text="'$' + ${p.price}"></div>
                 </div>
                 <div class="actions">
-                    <form method="post" th:action="@{/cart/add}">
-                        <input type="hidden" name="productId" th:value="${p.id}">
-                        <input type="hidden" name="title" th:value="${p.title}">
-                        <input type="hidden" name="price" th:value="${p.price}">
-                        <input type="hidden" name="quantity" value="1">
-                        <button type="submit" class="add-to-cart">Add to Cart</button>
-                    </form>
+                    <button class="add-to-cart"
+                            th:data-product-id="${p.id}"
+                            th:data-title="${p.title}"
+                            th:data-price="${p.price}"
+                            onclick="addToCart(this)">Add to Cart</button>
                 </div>
             </div>
         </div>
     </div>
 </main>
+<script>
+function addToCart(btn) {
+    const body = new URLSearchParams({
+        productId: btn.dataset.productId,
+        title: btn.dataset.title,
+        price: btn.dataset.price,
+        quantity: 1
+    });
+    btn.disabled = true;
+    fetch('/cart/add', { method: 'POST', body })
+        .then(r => r.json())
+        .then(data => {
+            const cartBtn = document.querySelector('.cart-btn');
+            if (cartBtn) cartBtn.textContent = data.cartCount > 0 ? 'Cart (' + data.cartCount + ')' : 'Cart';
+            btn.textContent = 'Added!';
+            setTimeout(() => { btn.textContent = 'Add to Cart'; btn.disabled = false; }, 1500);
+        })
+        .catch(() => { btn.disabled = false; });
+}
+</script>
 </body>
 </html>
