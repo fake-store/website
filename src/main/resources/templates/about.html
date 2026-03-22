@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>About — Fakestore</title>
+    <link rel="stylesheet" th:href="@{/css/fakestore.css}">
+    <link rel="icon" type="image/png" th:href="@{/images/favicon.png}">
+    <style>
+        main { max-width: 860px; }
+        .about-section { margin-bottom: 2.5rem; }
+        .about-section h2 { font-size: 1.15rem; font-weight: 700; color: #111827; margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid #e5e7eb; }
+        .about-section p { color: #374151; line-height: 1.65; margin-bottom: 0.75rem; }
+        .service-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .service-table th { text-align: left; padding: 0.4rem 0.75rem; color: #6b7280; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; border-bottom: 2px solid #e5e7eb; }
+        .service-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #f3f4f6; color: #374151; vertical-align: top; }
+        .service-table tr:last-child td { border-bottom: none; }
+        .service-table a { color: var(--brand-purple); text-decoration: none; }
+        .service-table a:hover { text-decoration: underline; }
+        .todo-list { list-style: none; padding: 0; margin: 0; }
+        .todo-list li { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.35rem 0; color: #374151; font-size: 0.9rem; }
+        .todo-list li::before { content: "○"; color: #9ca3af; flex-shrink: 0; margin-top: 0.05rem; }
+        .todo-list li.done::before { content: "●"; color: var(--brand-purple); }
+        .disclaimer { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 1rem 1.25rem; font-size: 0.875rem; color: #92400e; line-height: 1.6; margin-bottom: 2rem; }
+        .github-link { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--brand-purple); font-weight: 600; text-decoration: none; }
+        .github-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<nav th:replace="~{fragments/nav :: main}"></nav>
+<main>
+
+    <div class="disclaimer">
+        This is a demo application. Accounts are not real.
+        Feel free to register with any email — no verification required.
+    </div>
+
+    <div class="about-section">
+        <h2>About This Project</h2>
+        <p>
+            Fakestore is a fictional e-commerce platform built as a personal laboratory. The goal is to
+            design and build a realistic, production-grade distributed system from scratch — end to end,
+            without shortcuts — while using it as a test bed for AI-assisted development workflows.
+        </p>
+        <p>
+            The purpose of this project is to demonstrate end-to-end system design and integration, not
+            to deliver a polished feature set. Some services are further along than others, and several
+            features are incomplete — that is intentional. What matters here is that the pieces connect:
+            the services communicate, authentication flows through the stack, events move over Kafka, and
+            the whole thing runs in production over HTTPS.
+        </p>
+        <p>
+            Services are intentionally written in different languages and frameworks to stay sharp across
+            the stack and evaluate technologies outside my daily work.
+            More details and all source code are available on GitHub:
+        </p>
+        <a href="https://github.com/fake-store" class="github-link" target="_blank" rel="noopener">
+            github.com/fake-store →
+        </a>
+    </div>
+
+    <div class="about-section">
+        <h2>Services</h2>
+        <table class="service-table">
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Stack</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><a href="https://github.com/fake-store/website" target="_blank" rel="noopener">website</a></td>
+                    <td>Kotlin / Spring Boot / Thymeleaf</td>
+                    <td>Server-rendered frontend; only externally exposed service</td>
+                </tr>
+                <tr>
+                    <td><a href="https://github.com/fake-store/users" target="_blank" rel="noopener">users</a></td>
+                    <td>Kotlin / Spring Boot</td>
+                    <td>Registration, authentication, JWT issuance</td>
+                </tr>
+                <tr>
+                    <td><a href="https://github.com/fake-store/payments" target="_blank" rel="noopener">payments</a></td>
+                    <td>Kotlin / Spring Boot</td>
+                    <td>Payment method management and order payment processing</td>
+                </tr>
+                <tr>
+                    <td><a href="https://github.com/fake-store/orders" target="_blank" rel="noopener">orders</a></td>
+                    <td>Java / Spring Boot</td>
+                    <td>Order intake and payment request dispatch via Kafka</td>
+                </tr>
+                <tr>
+                    <td><a href="https://github.com/fake-store/shipping" target="_blank" rel="noopener">shipping</a></td>
+                    <td>C# / .NET 8</td>
+                    <td>Address management, shipment label generation, tracking</td>
+                </tr>
+                <tr>
+                    <td><a href="https://github.com/fake-store/notifications" target="_blank" rel="noopener">notifications</a></td>
+                    <td>Rust</td>
+                    <td>Consumes shipped events, delivers customer notifications</td>
+                </tr>
+                <tr>
+                    <td><a href="https://github.com/fake-store/catalog" target="_blank" rel="noopener">catalog</a></td>
+                    <td>TypeScript / Node.js / Express</td>
+                    <td>Product catalog — search, browse, and manage products</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="about-section">
+        <h2>What's Done</h2>
+        <ul class="todo-list">
+            <li class="done">Microservices architecture with Kafka async messaging</li>
+            <li class="done">JWT authentication with refresh token rotation</li>
+            <li class="done">Multi-language services (Kotlin, Java, C#, Rust)</li>
+            <li class="done">Self-hosted k3s cluster on Raspberry Pi (arm64)</li>
+            <li class="done">GCE VM deployment with HTTPS (nginx + Let's Encrypt TLS)</li>
+            <li class="done">CI/CD pipeline: GitHub Actions → ghcr.io → auto-deploy</li>
+            <li class="done">Distributed trace ID propagation across all services</li>
+            <li class="done">Stateless architecture (HttpOnly cookies, no server-side session)</li>
+            <li class="done">Secure cookies: HttpOnly, Secure (HTTPS-only), SameSite=Lax (CSRF protection)</li>
+            <li class="done">Shopping cart (cookie-based for guests, server-side for logged-in users)</li>
+            <li class="done">Payment method management, order placement, shipping address management</li>
+            <li class="done">JavaScript frontend interactions (cart, dynamic UI)</li>
+        </ul>
+    </div>
+
+    <div class="about-section">
+        <h2>Known Missing / In Progress</h2>
+        <ul class="todo-list">
+            <li>Unit and integration tests</li>
+            <li>Circuit breakers / resilience patterns (Resilience4j)</li>
+            <li>Login with Google (OAuth2/OIDC)</li>
+            <li>Product catalog fully wired end-to-end, real product images</li>
+            <li>Order status updates via Kafka (shipping events → orders)</li>
+            <li>Notification delivery (Rust service — ARM64 image not yet in GCE deployment)</li>
+        </ul>
+    </div>
+
+</main>
+</body>
+</html>

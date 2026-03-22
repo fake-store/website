@@ -1,5 +1,6 @@
 package xyz.fakestore.website.client
 
+import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -41,6 +42,7 @@ data class OrderDetail(
 @Component
 class OrdersClient(@Value("\${services.orders.url}") baseUrl: String) {
 
+    private val log = LoggerFactory.getLogger(javaClass)
     private val webClient = WebClient.builder().baseUrl(baseUrl).build()
 
     fun getMe(token: String): List<OrderListItem> = runCatching {
@@ -51,7 +53,7 @@ class OrdersClient(@Value("\${services.orders.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<List<OrderListItem>>()
             .block() ?: emptyList()
-    }.getOrDefault(emptyList())
+    }.onFailure { log.warn("OrdersClient.getMe failed", it) }.getOrDefault(emptyList())
 
     fun placeOrder(token: String, request: PlaceOrderRequest): PlaceOrderResponse? = runCatching {
         webClient.post()
@@ -62,7 +64,7 @@ class OrdersClient(@Value("\${services.orders.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<PlaceOrderResponse>()
             .block()
-    }.getOrNull()
+    }.onFailure { log.warn("OrdersClient.placeOrder failed", it) }.getOrNull()
 
     fun getOrderDetail(token: String, orderId: UUID): OrderDetail? = runCatching {
         webClient.get()
@@ -72,5 +74,5 @@ class OrdersClient(@Value("\${services.orders.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<OrderDetail>()
             .block()
-    }.getOrNull()
+    }.onFailure { log.warn("OrdersClient.getOrderDetail failed", it) }.getOrNull()
 }

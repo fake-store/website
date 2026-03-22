@@ -96,13 +96,30 @@ class WebController(
         request: HttpServletRequest,
         redirectAttributes: RedirectAttributes
     ): String {
-        val token = jwtCookieService.getToken(request) ?: return "redirect:/login"
+        val claims = jwtCookieService.getClaims(request) ?: return "redirect:/login"
         return try {
-            usersClient.updateEmail(token, email) ?: throw RuntimeException("Update failed")
+            usersClient.updateEmail(claims.token, email) ?: throw RuntimeException("Update failed")
             redirectAttributes.addFlashAttribute("successEmail", "Email updated successfully")
             "redirect:/me"
         } catch (e: Exception) {
             redirectAttributes.addFlashAttribute("errorEmail", "Failed to update email. It may already be in use.")
+            "redirect:/me"
+        }
+    }
+
+    @PostMapping("/me/update-username")
+    fun updateUsername(
+        @RequestParam username: String,
+        request: HttpServletRequest,
+        redirectAttributes: RedirectAttributes
+    ): String {
+        val claims = jwtCookieService.getClaims(request) ?: return "redirect:/login"
+        return try {
+            usersClient.updateUsername(claims.token, username) ?: throw RuntimeException("Update failed")
+            redirectAttributes.addFlashAttribute("successUsername", "Username updated successfully")
+            "redirect:/me"
+        } catch (e: Exception) {
+            redirectAttributes.addFlashAttribute("errorUsername", "Failed to update username. It may already be in use.")
             "redirect:/me"
         }
     }
@@ -363,6 +380,7 @@ class WebController(
             val loginResponse = usersClient.login(email, password)
                 ?: throw RuntimeException("Login failed")
             jwtCookieService.setToken(loginResponse.token, response)
+            jwtCookieService.setRefreshToken(loginResponse.refreshToken, response)
 
             val cookieItems = cookieCartService.getItems(request)
             if (cookieItems.isNotEmpty()) {
@@ -397,6 +415,7 @@ class WebController(
             val registerResponse = usersClient.register(username, email, password)
                 ?: throw RuntimeException("Registration failed")
             jwtCookieService.setToken(registerResponse.token, response)
+            jwtCookieService.setRefreshToken(registerResponse.refreshToken, response)
             "redirect:/me"
         } catch (e: Exception) {
             redirectAttributes.addFlashAttribute("error", "Registration failed. The email may already be in use.")
@@ -404,10 +423,18 @@ class WebController(
         }
     }
 
+
     @GetMapping("/logout")
     fun logout(request: HttpServletRequest, response: HttpServletResponse): String {
         jwtCookieService.clearToken(response)
+        jwtCookieService.clearRefreshToken(response)
         return "redirect:/login"
+    }
+
+    @GetMapping("/about")
+    fun aboutPage(request: HttpServletRequest, model: Model): String {
+        model.addAttribute("username", jwtCookieService.getClaims(request)?.username)
+        return "about"
     }
 
     @GetMapping("/admin/products/add")

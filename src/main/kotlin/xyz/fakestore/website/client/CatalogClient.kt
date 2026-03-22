@@ -1,5 +1,6 @@
 package xyz.fakestore.website.client
 
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
@@ -24,6 +25,7 @@ data class CreateProductRequest(
 @Component
 class CatalogClient(@Value("\${services.catalog.url}") baseUrl: String) {
 
+    private val log = LoggerFactory.getLogger(javaClass)
     private val webClient = WebClient.builder().baseUrl(baseUrl).build()
 
     fun search(query: String): List<Product>? = runCatching {
@@ -32,7 +34,7 @@ class CatalogClient(@Value("\${services.catalog.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<List<Product>>()
             .block()
-    }.getOrNull()
+    }.onFailure { log.warn("CatalogClient.search failed", it) }.getOrNull()
 
     fun getRecommended(userId: UUID?): List<Product>? = runCatching {
         webClient.get()
@@ -44,7 +46,7 @@ class CatalogClient(@Value("\${services.catalog.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<List<Product>>()
             .block()
-    }.getOrNull()
+    }.onFailure { log.warn("CatalogClient.getRecommended failed", it) }.getOrNull()
 
     fun createProduct(title: String, description: String?, price: BigDecimal): Product? = runCatching {
         webClient.post()
@@ -53,5 +55,5 @@ class CatalogClient(@Value("\${services.catalog.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<Product>()
             .block()
-    }.getOrNull()
+    }.onFailure { log.warn("CatalogClient.createProduct failed", it) }.getOrNull()
 }

@@ -13,12 +13,17 @@
         .footer-link { margin-top: 1rem; text-align: center; font-size: 0.875rem; }
         .footer-link a { color: var(--brand-purple); text-decoration: none; }
         .footer-link a:hover { text-decoration: underline; }
-    </style>
+        .demo-note { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 0.75rem; margin-bottom: 1.25rem; font-size: 0.8rem; color: #0369a1; line-height: 1.5; }
+</style>
 </head>
 <body>
 <nav th:replace="~{fragments/nav :: main}"></nav>
 <main>
     <div class="login-card">
+        <div class="demo-note">
+            This is a demo app. Use any email and password to register — no verification required.<br />
+            <a href="/about">About this project</a>
+        </div>
         <div th:if="${error}" class="error" th:text="${error}"></div>
         <form method="post" action="/register">
             <label for="username">Username</label>

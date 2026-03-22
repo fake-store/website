@@ -18,8 +18,7 @@
         .alert-error  { margin-bottom: 0.75rem; }
         .btn-sm { background: var(--brand-purple); color: white; border: none; padding: 0.25rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
         .btn-sm:hover { background: var(--brand-purple-hover); }
-        .btn-link { background: none; border: none; color: var(--brand-purple); cursor: pointer; font-size: 0.875rem; padding: 0; text-decoration: underline; }
-        details summary { cursor: pointer; list-style: none; }
+        details summary { cursor: pointer; list-style: none; color: var(--brand-purple); font-size: 0.875rem; text-decoration: underline; }
         details summary::-webkit-details-marker { display: none; }
         details[open] summary { margin-bottom: 0.5rem; }
         .inline-form { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-top: 0.4rem; }
@@ -38,22 +37,31 @@
     <!-- Profile card -->
     <div class="card">
         <h2>Profile</h2>
+        <div class="field"><span>User ID:</span> <code th:text="${user.userId}"></code></div>
+        <div th:if="${successUsername}" class="alert-success" th:text="${successUsername}"></div>
+        <div th:if="${errorUsername}" class="alert-error" th:text="${errorUsername}"></div>
+        <div class="field"><span>Username:</span> <strong th:text="${user.username}"></strong></div>
+        <details>
+            <summary>Change username</summary>
+            <form method="post" th:action="@{/me/update-username}">
+                <div class="inline-form">
+                    <input type="text" name="username" th:placeholder="${user.username}" required>
+                    <button type="submit" class="btn-sm">Update</button>
+                </div>
+            </form>
+        </details>
         <div th:if="${successEmail}" class="alert-success" th:text="${successEmail}"></div>
         <div th:if="${errorEmail}" class="alert-error" th:text="${errorEmail}"></div>
-        <div class="field"><span>Username:</span> <strong th:text="${user.username}"></strong></div>
-        <div class="field"><span>Email:</span> <strong th:text="${user.email}"></strong></div>
-        <div class="field"><span>User ID:</span> <code th:text="${user.userId}"></code></div>
-        <div style="margin-top: 0.75rem;">
-            <details>
-                <summary><button type="button" class="btn-link">Change email</button></summary>
-                <form method="post" th:action="@{/me/update-email}">
-                    <div class="inline-form">
-                        <input type="email" name="email" th:placeholder="${user.email}" required>
-                        <button type="submit" class="btn-sm">Update</button>
-                    </div>
-                </form>
-            </details>
-        </div>
+        <div class="field" style="margin-top: 0.75rem;"><span>Email:</span> <strong th:text="${user.email}"></strong></div>
+        <details>
+            <summary>Change email</summary>
+            <form method="post" th:action="@{/me/update-email}">
+                <div class="inline-form">
+                    <input type="email" name="email" th:placeholder="${user.email}" required>
+                    <button type="submit" class="btn-sm">Update</button>
+                </div>
+            </form>
+        </details>
     </div>
 
     <!-- Recent Orders card -->

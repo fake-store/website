@@ -1,5 +1,6 @@
 package xyz.fakestore.website.client
 
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
@@ -11,6 +12,7 @@ data class AdminUserResponse(val userId: String, val username: String, val email
 @Component
 class AdminClient(@Value("\${services.users.url}") baseUrl: String) {
 
+    private val log = LoggerFactory.getLogger(javaClass)
     private val webClient = WebClient.builder().baseUrl(baseUrl).build()
 
     fun getUsers(): List<AdminUserResponse>? = runCatching {
@@ -19,7 +21,7 @@ class AdminClient(@Value("\${services.users.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<List<AdminUserResponse>>()
             .block()
-    }.getOrNull()
+    }.onFailure { log.warn("AdminClient.getUsers failed", it) }.getOrNull()
 
     fun getUserCount(): Long? = runCatching {
         webClient.get()
@@ -27,7 +29,7 @@ class AdminClient(@Value("\${services.users.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<UserCountResponse>()
             .block()?.count
-    }.getOrNull()
+    }.onFailure { log.warn("AdminClient.getUserCount failed", it) }.getOrNull()
 
     fun deleteAllUsers(): Long? = runCatching {
         webClient.delete()
@@ -35,5 +37,5 @@ class AdminClient(@Value("\${services.users.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<UserCountResponse>()
             .block()?.count
-    }.getOrNull()
+    }.onFailure { log.warn("AdminClient.deleteAllUsers failed", it) }.getOrNull()
 }

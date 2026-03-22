@@ -5,6 +5,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import jakarta.servlet.http.Cookie
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import xyz.fakestore.website.client.CartItemDto
 import java.net.URLDecoder
@@ -15,6 +16,7 @@ import java.util.UUID
 @Service
 class CookieCartService {
 
+    private val log = LoggerFactory.getLogger(javaClass)
     private val mapper = jacksonObjectMapper()
     private val cookieName = "fakestore_cart"
 
@@ -23,7 +25,7 @@ class CookieCartService {
         return runCatching {
             val json = URLDecoder.decode(cookie.value, StandardCharsets.UTF_8)
             mapper.readValue<List<CartItemDto>>(json)
-        }.getOrDefault(emptyList())
+        }.onFailure { log.warn("Failed to parse cart cookie", it) }.getOrDefault(emptyList())
     }
 
     fun addItem(item: CartItemDto, request: HttpServletRequest, response: HttpServletResponse) {
