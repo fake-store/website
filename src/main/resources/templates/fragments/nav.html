@@ -8,8 +8,7 @@
         <img th:src="@{/images/wordmark.png}" alt="Fakestore">
     </a>
     <div class="nav-right">
-        <a href="https://github.com/fake-store" class="nav-link-muted" target="_blank" rel="noopener">About</a>
-        <a href="/admin" class="nav-link-muted">Admin</a>
+        <a href="/about" class="nav-link-muted">About</a>
         <a href="/cart" class="cart-btn"
            th:text="${cartCount != null and cartCount > 0 ? 'Cart (' + cartCount + ')' : 'Cart'}">Cart</a>
         <div th:if="${username != null}">

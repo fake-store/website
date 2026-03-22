@@ -1,5 +1,6 @@
 package xyz.fakestore.website.client
 
+import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -32,6 +33,7 @@ data class PaymentHistoryItem(
 @Component
 class PaymentsClient(@Value("\${services.payments.url}") baseUrl: String) {
 
+    private val log = LoggerFactory.getLogger(javaClass)
     private val webClient = WebClient.builder().baseUrl(baseUrl).build()
 
     fun getMethods(token: String): List<PaymentMethod>? = runCatching {
@@ -42,7 +44,7 @@ class PaymentsClient(@Value("\${services.payments.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<List<PaymentMethod>>()
             .block()
-    }.getOrNull()
+    }.onFailure { log.warn("PaymentsClient.getMethods failed", it) }.getOrNull()
 
     fun addMethod(token: String, type: String, label: String): PaymentMethod? = runCatching {
         webClient.post()
@@ -53,7 +55,7 @@ class PaymentsClient(@Value("\${services.payments.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<PaymentMethod>()
             .block()
-    }.getOrNull()
+    }.onFailure { log.warn("PaymentsClient.addMethod failed", it) }.getOrNull()
 
     fun updateMethod(token: String, methodId: UUID, label: String, isDefault: Boolean): PaymentMethod? = runCatching {
         webClient.post()
@@ -64,7 +66,7 @@ class PaymentsClient(@Value("\${services.payments.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<PaymentMethod>()
             .block()
-    }.getOrNull()
+    }.onFailure { log.warn("PaymentsClient.updateMethod failed", it) }.getOrNull()
 
     fun deleteMethod(token: String, methodId: UUID): Boolean = runCatching {
         webClient.post()
@@ -75,7 +77,7 @@ class PaymentsClient(@Value("\${services.payments.url}") baseUrl: String) {
             .toBodilessEntity()
             .block()
         true
-    }.getOrDefault(false)
+    }.onFailure { log.warn("PaymentsClient.deleteMethod failed", it) }.getOrDefault(false)
 
     fun getHistory(token: String): List<PaymentHistoryItem>? = runCatching {
         webClient.get()
@@ -85,5 +87,5 @@ class PaymentsClient(@Value("\${services.payments.url}") baseUrl: String) {
             .retrieve()
             .bodyToMono<List<PaymentHistoryItem>>()
             .block()
-    }.getOrNull()
+    }.onFailure { log.warn("PaymentsClient.getHistory failed", it) }.getOrNull()
 }
